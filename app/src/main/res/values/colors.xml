@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Colores principales de LOOP -->
+    <color name="primary">#FF2E7D32</color>
+    <color name="primary_dark">#FF1B5E20</color>
+    <color name="primary_light">#FF4CAF50</color>
+    
+    <color name="secondary">#FF757575</color>
+    <color name="secondary_dark">#FF424242</color>
+    <color name="secondary_light">#FFBDBDBD</color>
+    
+    <color name="accent">#FFFF9800</color>
+    <color name="accent_dark">#FFF57C00</color>
+    <color name="accent_light">#FFFFB74D</color>
+    
+    <!-- Colores de estado -->
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFF9800</color>
+    <color name="error">#FFF44336</color>
+    <color name="info">#FF2196F3</color>
+    
+    <!-- Colores de fondo -->
+    <color name="background">#FFF5F5F5</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_variant">#FFF3F3F3</color>
+    
+    <!-- Colores de texto -->
+    <color name="text_primary">#FF212121</color>
+    <color name="text_secondary">#FF757575</color>
+    <color name="text_hint">#FFBDBDBD</color>
+</resources>

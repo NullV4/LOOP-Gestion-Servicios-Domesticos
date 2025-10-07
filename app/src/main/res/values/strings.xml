@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">LOOP</string>
+    
+    <!-- Autenticación -->
+    <string name="login">Iniciar Sesión</string>
+    <string name="register">Registrarse</string>
+    <string name="email">Email</string>
+    <string name="password">Contraseña</string>
+    <string name="name">Nombre</string>
+    <string name="phone">Teléfono</string>
+    <string name="confirm_password">Confirmar Contraseña</string>
+    <string name="account_type">Tipo de cuenta</string>
+    <string name="client">Cliente</string>
+    <string name="socia">Socia Trabajadora</string>
+    
+    <!-- Navegación -->
+    <string name="home">Inicio</string>
+    <string name="services">Servicios</string>
+    <string name="requests">Solicitudes</string>
+    <string name="profile">Perfil</string>
+    
+    <!-- Servicios -->
+    <string name="service_catalog">Catálogo de Servicios</string>
+    <string name="book_service">Solicitar Servicio</string>
+    <string name="price">Precio</string>
+    <string name="duration">Duración</string>
+    <string name="category">Categoría</string>
+    
+    <!-- Solicitudes -->
+    <string name="my_requests">Mis Solicitudes</string>
+    <string name="pending_requests">Solicitudes Pendientes</string>
+    <string name="schedule_date">Fecha</string>
+    <string name="schedule_time">Hora</string>
+    <string name="address">Dirección</string>
+    <string name="notes">Notas</string>
+    <string name="total_price">Precio Total</string>
+    
+    <!-- Estados -->
+    <string name="pending">Pendiente</string>
+    <string name="accepted">Aceptada</string>
+    <string name="rejected">Rechazada</string>
+    <string name="completed">Completada</string>
+    <string name="cancelled">Cancelada</string>
+    
+    <!-- Acciones -->
+    <string name="accept">Aceptar</string>
+    <string name="reject">Rechazar</string>
+    <string name="complete">Completar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="pay">Pagar</string>
+    <string name="rate">Calificar</string>
+    
+    <!-- Perfil -->
+    <string name="edit_profile">Editar Perfil</string>
+    <string name="logout">Cerrar Sesión</string>
+    <string name="my_ratings">Mis Calificaciones</string>
+    
+    <!-- Mensajes -->
+    <string name="welcome">Bienvenido</string>
+    <string name="login_success">Inicio de sesión exitoso</string>
+    <string name="register_success">Registro exitoso</string>
+    <string name="logout_success">Sesión cerrada</string>
+    <string name="error_generic">Ha ocurrido un error</string>
+    <string name="error_network">Error de conexión</string>
+    <string name="error_validation">Por favor complete todos los campos</string>
+</resources>
