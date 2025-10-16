@@ -23,7 +23,7 @@ import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "loop_database.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
 
     // Tabla Users
     private static final String TABLE_USERS = "users";
@@ -38,6 +38,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_USER_PROFILE_IMAGE = "profile_image";
     private static final String COLUMN_USER_RATING = "rating";
     private static final String COLUMN_USER_TOTAL_RATINGS = "total_ratings";
+    private static final String COLUMN_USER_COMPLETED_SERVICES = "completed_services";
+    private static final String COLUMN_USER_LAST_SERVICE_DATE = "last_service_date";
     private static final String COLUMN_USER_LOCATION = "location";
     private static final String COLUMN_USER_CREATED_AT = "created_at";
     private static final String COLUMN_USER_UPDATED_AT = "updated_at";
@@ -152,6 +154,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_USER_PROFILE_IMAGE + " TEXT, " +
                 COLUMN_USER_RATING + " REAL DEFAULT 0, " +
                 COLUMN_USER_TOTAL_RATINGS + " INTEGER DEFAULT 0, " +
+                COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0, " +
+                COLUMN_USER_LAST_SERVICE_DATE + " TEXT, " +
                 COLUMN_USER_LOCATION + " TEXT, " +
                 COLUMN_USER_CREATED_AT + " TEXT, " +
                 COLUMN_USER_UPDATED_AT + " TEXT" +
@@ -284,6 +288,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_RATING + " REAL DEFAULT 0");
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_TOTAL_RATINGS + " INTEGER DEFAULT 0");
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LOCATION + " TEXT");
+        }
+        
+        if (oldVersion < 7) {
+            // Agregar nuevas columnas para estadísticas de socias
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0");
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LAST_SERVICE_DATE + " TEXT");
         }
         
         if (oldVersion < 6) {
@@ -470,12 +480,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // Insertar solicitudes de prueba
         String[] requests = {
-                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, title, description, address, latitude, longitude, scheduled_date, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
-                "(1, 2, 1, 'Limpieza General - Casa', 'Necesito limpieza general de mi casa de 3 habitaciones', 'Calle Principal 123, Ciudad', 19.4326, -99.1332, '" + currentTime + "', 'pendiente', 50.00, 'pendiente', 0, '', '" + currentTime + "', '" + currentTime + "')",
-                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, title, description, address, latitude, longitude, scheduled_date, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
-                "(1, 2, 2, 'Limpieza Profunda - Oficina', 'Limpieza profunda de oficina pequeña', 'Avenida Central 456, Ciudad', 19.4326, -99.1332, '" + currentTime + "', 'aceptada', 80.00, 'pagado', 0, '', '" + currentTime + "', '" + currentTime + "')",
-                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, title, description, address, latitude, longitude, scheduled_date, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
-                "(1, 2, 3, 'Limpieza de Cocina', 'Limpieza especializada de cocina', 'Calle Secundaria 789, Ciudad', 19.4326, -99.1332, '" + currentTime + "', 'completada', 35.00, 'pagado', 5, 'Excelente servicio, muy recomendado', '" + currentTime + "', '" + currentTime + "')"
+                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, scheduled_date, scheduled_time, address, notes, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
+                "(1, 2, 1, '" + currentTime + "', '10:00', 'Calle Principal 123, Ciudad', 'Necesito limpieza general de mi casa de 3 habitaciones', 'pendiente', 50.00, 'pendiente', 0, '', '" + currentTime + "', '" + currentTime + "')",
+                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, scheduled_date, scheduled_time, address, notes, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
+                "(1, 2, 2, '" + currentTime + "', '14:00', 'Avenida Central 456, Ciudad', 'Limpieza profunda de oficina pequeña', 'aceptada', 80.00, 'pagado', 0, '', '" + currentTime + "', '" + currentTime + "')",
+                "INSERT INTO " + TABLE_REQUESTS + " (client_id, socia_id, service_id, scheduled_date, scheduled_time, address, notes, status, total_price, payment_status, rating, review, created_at, updated_at) VALUES " +
+                "(1, 2, 3, '" + currentTime + "', '16:00', 'Calle Secundaria 789, Ciudad', 'Limpieza especializada de cocina', 'completada', 35.00, 'pagado', 5, 'Excelente servicio, muy recomendado', '" + currentTime + "', '" + currentTime + "')"
         };
 
         for (String request : requests) {
@@ -500,6 +510,66 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public String getCurrentDateTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         return sdf.format(new Date());
+    }
+    
+    /**
+     * Método para verificar el estado de la base de datos y datos
+     */
+    public void logDatabaseStatus() {
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            
+            // Verificar usuarios
+            Cursor userCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_USERS, null);
+            int userCount = 0;
+            if (userCursor.moveToFirst()) {
+                userCount = userCursor.getInt(0);
+            }
+            userCursor.close();
+            
+            // Verificar servicios
+            Cursor serviceCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_SERVICES, null);
+            int serviceCount = 0;
+            if (serviceCursor.moveToFirst()) {
+                serviceCount = serviceCursor.getInt(0);
+            }
+            serviceCursor.close();
+            
+            // Verificar solicitudes
+            Cursor requestCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_REQUESTS, null);
+            int requestCount = 0;
+            if (requestCursor.moveToFirst()) {
+                requestCount = requestCursor.getInt(0);
+            }
+            requestCursor.close();
+            
+            // Verificar solicitudes completadas
+            Cursor completedCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_REQUESTS + " WHERE " + COLUMN_REQUEST_STATUS + " = 'completada'", null);
+            int completedCount = 0;
+            if (completedCursor.moveToFirst()) {
+                completedCount = completedCursor.getInt(0);
+            }
+            completedCursor.close();
+            
+            // Verificar calificaciones
+            Cursor ratingCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_RATINGS, null);
+            int ratingCount = 0;
+            if (ratingCursor.moveToFirst()) {
+                ratingCount = ratingCursor.getInt(0);
+            }
+            ratingCursor.close();
+            
+            Log.d("DatabaseHelper", "Estado de la base de datos:");
+            Log.d("DatabaseHelper", "- Usuarios: " + userCount);
+            Log.d("DatabaseHelper", "- Servicios: " + serviceCount);
+            Log.d("DatabaseHelper", "- Solicitudes: " + requestCount);
+            Log.d("DatabaseHelper", "- Solicitudes completadas: " + completedCount);
+            Log.d("DatabaseHelper", "- Calificaciones: " + ratingCount);
+            
+            db.close();
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error verificando estado de la base de datos: " + e.getMessage());
+        }
     }
     
     private boolean columnExists(SQLiteDatabase db, String tableName, String columnName) {
@@ -556,31 +626,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_STATUS)));
             // Manejar columnas que podrían no existir en versiones anteriores
             if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
-                user.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_DESCRIPTION)));
+                int descriptionIndex = cursor.getColumnIndex(COLUMN_USER_DESCRIPTION);
+                user.setDescription(descriptionIndex >= 0 && !cursor.isNull(descriptionIndex) ? cursor.getString(descriptionIndex) : "");
             } else {
                 user.setDescription("");
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
-                user.setProfileImage(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PROFILE_IMAGE)));
+                int profileImageIndex = cursor.getColumnIndex(COLUMN_USER_PROFILE_IMAGE);
+                user.setProfileImage(profileImageIndex >= 0 && !cursor.isNull(profileImageIndex) ? cursor.getString(profileImageIndex) : "");
             } else {
                 user.setProfileImage("");
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
-                user.setRating(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_USER_RATING)));
+                int ratingIndex = cursor.getColumnIndex(COLUMN_USER_RATING);
+                user.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getDouble(ratingIndex) : 0.0);
             } else {
                 user.setRating(0.0);
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
-                user.setTotalRatings(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_USER_TOTAL_RATINGS)));
+                int totalRatingsIndex = cursor.getColumnIndex(COLUMN_USER_TOTAL_RATINGS);
+                user.setTotalRatings(totalRatingsIndex >= 0 && !cursor.isNull(totalRatingsIndex) ? cursor.getInt(totalRatingsIndex) : 0);
             } else {
                 user.setTotalRatings(0);
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
-                user.setLocation(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_LOCATION)));
+                int locationIndex = cursor.getColumnIndex(COLUMN_USER_LOCATION);
+                user.setLocation(locationIndex >= 0 && !cursor.isNull(locationIndex) ? cursor.getString(locationIndex) : "");
             } else {
                 user.setLocation("");
             }
@@ -593,13 +668,116 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return user;
     }
 
+    /**
+     * Actualiza las estadísticas de un usuario basándose en las solicitudes completadas y calificaciones
+     */
+    public void updateUserStatsFromDatabase(int userId) {
+        SQLiteDatabase db = null;
+        try {
+            Log.d("DatabaseHelper", "Actualizando estadísticas del usuario ID: " + userId);
+            
+            // Obtener el usuario
+            User user = getUserById(userId);
+            if (user == null) {
+                Log.e("DatabaseHelper", "Usuario no encontrado para actualizar estadísticas");
+                return;
+            }
+            
+            // Abrir base de datos una sola vez
+            db = this.getReadableDatabase();
+            
+            // Contar servicios completados por esta socia
+            Cursor completedCursor = db.rawQuery(
+                "SELECT COUNT(*) FROM " + TABLE_REQUESTS + 
+                " WHERE " + COLUMN_REQUEST_SOCIA_ID + " = ? AND " + COLUMN_REQUEST_STATUS + " = 'completada'", 
+                new String[]{String.valueOf(userId)}
+            );
+            
+            int completedServices = 0;
+            if (completedCursor.moveToFirst()) {
+                completedServices = completedCursor.getInt(0);
+            }
+            completedCursor.close();
+            
+            // Obtener calificaciones de la socia directamente desde la base de datos
+            Cursor ratingCursor = db.rawQuery(
+                "SELECT " + COLUMN_RATING_OVERALL + " FROM " + TABLE_RATINGS + 
+                " WHERE " + COLUMN_RATING_RATED_ID + " = ?", 
+                new String[]{String.valueOf(userId)}
+            );
+            
+            double averageRating = 0.0;
+            int totalRatings = 0;
+            double totalRatingSum = 0.0;
+            
+            if (ratingCursor.moveToFirst()) {
+                do {
+                    int ratingIndex = ratingCursor.getColumnIndex(COLUMN_RATING_OVERALL);
+                    if (ratingIndex >= 0 && !ratingCursor.isNull(ratingIndex)) {
+                        double rating = ratingCursor.getDouble(ratingIndex);
+                        totalRatingSum += rating;
+                        totalRatings++;
+                    }
+                } while (ratingCursor.moveToNext());
+                
+                if (totalRatings > 0) {
+                    averageRating = totalRatingSum / totalRatings;
+                }
+            }
+            ratingCursor.close();
+            
+            // Obtener fecha del último servicio completado
+            Cursor lastServiceCursor = db.rawQuery(
+                "SELECT " + COLUMN_REQUEST_UPDATED_AT + " FROM " + TABLE_REQUESTS + 
+                " WHERE " + COLUMN_REQUEST_SOCIA_ID + " = ? AND " + COLUMN_REQUEST_STATUS + " = 'completada'" +
+                " ORDER BY " + COLUMN_REQUEST_UPDATED_AT + " DESC LIMIT 1", 
+                new String[]{String.valueOf(userId)}
+            );
+            
+            String lastServiceDate = "";
+            if (lastServiceCursor.moveToFirst()) {
+                int dateIndex = lastServiceCursor.getColumnIndex(COLUMN_REQUEST_UPDATED_AT);
+                if (dateIndex >= 0 && !lastServiceCursor.isNull(dateIndex)) {
+                    lastServiceDate = lastServiceCursor.getString(dateIndex);
+                }
+            }
+            lastServiceCursor.close();
+            
+            // Actualizar el usuario
+            user.setCompletedServices(completedServices);
+            user.setRating(averageRating);
+            user.setTotalRatings(totalRatings);
+            user.setLastServiceDate(lastServiceDate);
+            
+            // Guardar en la base de datos
+            boolean updated = updateUser(user);
+            
+            Log.d("DatabaseHelper", "Estadísticas actualizadas para " + user.getName() + ":");
+            Log.d("DatabaseHelper", "- Servicios completados: " + completedServices);
+            Log.d("DatabaseHelper", "- Calificación promedio: " + String.format("%.2f", averageRating));
+            Log.d("DatabaseHelper", "- Total calificaciones: " + totalRatings);
+            Log.d("DatabaseHelper", "- Último servicio: " + lastServiceDate);
+            Log.d("DatabaseHelper", "- Actualización exitosa: " + updated);
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error actualizando estadísticas del usuario: " + e.getMessage(), e);
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
+    }
+
     public User getUserById(int id) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_USERS, null, COLUMN_USER_ID + "=?", 
-                new String[]{String.valueOf(id)}, null, null, null);
-        
-        User user = null;
-        if (cursor.moveToFirst()) {
+        try {
+            Log.d("DatabaseHelper", "Buscando usuario con ID: " + id);
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(TABLE_USERS, null, COLUMN_USER_ID + "=?", 
+                    new String[]{String.valueOf(id)}, null, null, null);
+            
+            User user = null;
+            if (cursor.moveToFirst()) {
+                Log.d("DatabaseHelper", "Usuario encontrado en la base de datos");
             user = new User();
             user.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_USER_ID)));
             user.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_EMAIL)));
@@ -610,56 +788,119 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_STATUS)));
             // Manejar columnas que podrían no existir en versiones anteriores
             if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
-                user.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_DESCRIPTION)));
+                int descriptionIndex = cursor.getColumnIndex(COLUMN_USER_DESCRIPTION);
+                user.setDescription(descriptionIndex >= 0 && !cursor.isNull(descriptionIndex) ? cursor.getString(descriptionIndex) : "");
             } else {
                 user.setDescription("");
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
-                user.setProfileImage(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PROFILE_IMAGE)));
+                int profileImageIndex = cursor.getColumnIndex(COLUMN_USER_PROFILE_IMAGE);
+                user.setProfileImage(profileImageIndex >= 0 && !cursor.isNull(profileImageIndex) ? cursor.getString(profileImageIndex) : "");
             } else {
                 user.setProfileImage("");
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
-                user.setRating(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_USER_RATING)));
+                int ratingIndex = cursor.getColumnIndex(COLUMN_USER_RATING);
+                user.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getDouble(ratingIndex) : 0.0);
             } else {
                 user.setRating(0.0);
             }
             
             if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
-                user.setTotalRatings(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_USER_TOTAL_RATINGS)));
+                int totalRatingsIndex = cursor.getColumnIndex(COLUMN_USER_TOTAL_RATINGS);
+                user.setTotalRatings(totalRatingsIndex >= 0 && !cursor.isNull(totalRatingsIndex) ? cursor.getInt(totalRatingsIndex) : 0);
             } else {
                 user.setTotalRatings(0);
             }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                int completedServicesIndex = cursor.getColumnIndex(COLUMN_USER_COMPLETED_SERVICES);
+                user.setCompletedServices(completedServicesIndex >= 0 && !cursor.isNull(completedServicesIndex) ? cursor.getInt(completedServicesIndex) : 0);
+            } else {
+                user.setCompletedServices(0);
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                int lastServiceDateIndex = cursor.getColumnIndex(COLUMN_USER_LAST_SERVICE_DATE);
+                user.setLastServiceDate(lastServiceDateIndex >= 0 && !cursor.isNull(lastServiceDateIndex) ? cursor.getString(lastServiceDateIndex) : "");
+            } else {
+                user.setLastServiceDate("");
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                int locationIndex = cursor.getColumnIndex(COLUMN_USER_LOCATION);
+                user.setLocation(locationIndex >= 0 && !cursor.isNull(locationIndex) ? cursor.getString(locationIndex) : "");
+            } else {
+                user.setLocation("");
+            }
+            
             user.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_CREATED_AT)));
-            user.setUpdatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_UPDATED_AT)));
+            
+            // Handle nullable updated_at
+            int updatedAtIndex = cursor.getColumnIndex(COLUMN_USER_UPDATED_AT);
+            user.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
+            } else {
+                Log.w("DatabaseHelper", "No se encontró usuario con ID: " + id);
+            }
+            cursor.close();
+            db.close();
+            return user;
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error obteniendo usuario por ID: " + e.getMessage(), e);
+            return null;
         }
-        cursor.close();
-        db.close();
-        return user;
     }
 
     public boolean updateUser(User user) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         
-        values.put(COLUMN_USER_EMAIL, user.getEmail());
-        values.put(COLUMN_USER_NAME, user.getName());
-        values.put(COLUMN_USER_PHONE, user.getPhone());
-        values.put(COLUMN_USER_ROLE, user.getRole());
-        values.put(COLUMN_USER_STATUS, user.getStatus());
-        values.put(COLUMN_USER_DESCRIPTION, user.getDescription());
-        values.put(COLUMN_USER_PROFILE_IMAGE, user.getProfileImage());
-        values.put(COLUMN_USER_RATING, user.getRating());
-        values.put(COLUMN_USER_TOTAL_RATINGS, user.getTotalRatings());
-        values.put(COLUMN_USER_LOCATION, user.getLocation());
-        values.put(COLUMN_USER_UPDATED_AT, getCurrentDateTime());
-        
-        int result = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", 
-                new String[]{String.valueOf(user.getId())});
-        db.close();
-        return result > 0;
+        try {
+            // Campos básicos que siempre existen
+            values.put(COLUMN_USER_EMAIL, user.getEmail());
+            values.put(COLUMN_USER_NAME, user.getName());
+            values.put(COLUMN_USER_PHONE, user.getPhone());
+            values.put(COLUMN_USER_ROLE, user.getRole());
+            values.put(COLUMN_USER_STATUS, user.getStatus());
+            
+            // Campos que pueden no existir en versiones anteriores
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                values.put(COLUMN_USER_DESCRIPTION, user.getDescription());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                values.put(COLUMN_USER_PROFILE_IMAGE, user.getProfileImage());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                values.put(COLUMN_USER_RATING, user.getRating());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                values.put(COLUMN_USER_TOTAL_RATINGS, user.getTotalRatings());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                values.put(COLUMN_USER_COMPLETED_SERVICES, user.getCompletedServices());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                values.put(COLUMN_USER_LAST_SERVICE_DATE, user.getLastServiceDate());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                values.put(COLUMN_USER_LOCATION, user.getLocation());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_UPDATED_AT)) {
+                values.put(COLUMN_USER_UPDATED_AT, getCurrentDateTime());
+            }
+            
+            int result = db.update(TABLE_USERS, values, COLUMN_USER_ID + "=?", 
+                    new String[]{String.valueOf(user.getId())});
+            return result > 0;
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error actualizando usuario: " + e.getMessage(), e);
+            return false;
+        } finally {
+            db.close();
+        }
     }
 
     public List<User> getSocias() {
@@ -788,19 +1029,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Request request = new Request();
                 request.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ID)));
                 request.setClientId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CLIENT_ID)));
-                request.setSociaId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SOCIA_ID)));
+                
+                // Handle nullable socia_id
+                int sociaIdIndex = cursor.getColumnIndex(COLUMN_REQUEST_SOCIA_ID);
+                request.setSociaId(sociaIdIndex >= 0 && !cursor.isNull(sociaIdIndex) ? cursor.getInt(sociaIdIndex) : 0);
+                
                 request.setServiceId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SERVICE_ID)));
                 request.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_STATUS)));
                 request.setScheduledDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_DATE)));
                 request.setScheduledTime(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_TIME)));
                 request.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ADDRESS)));
-                request.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_NOTES)));
+                
+                // Handle nullable notes
+                int notesIndex = cursor.getColumnIndex(COLUMN_REQUEST_NOTES);
+                request.setNotes(notesIndex >= 0 && !cursor.isNull(notesIndex) ? cursor.getString(notesIndex) : "");
+                
                 request.setTotalPrice(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_TOTAL_PRICE)));
                 request.setPaymentStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_PAYMENT_STATUS)));
-                request.setRating(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_RATING)));
-                request.setReview(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_REVIEW)));
+                
+                // Handle nullable rating
+                int ratingIndex = cursor.getColumnIndex(COLUMN_REQUEST_RATING);
+                request.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getInt(ratingIndex) : 0);
+                
+                // Handle nullable review
+                int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
+                request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
-                request.setUpdatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_UPDATED_AT)));
+                
+                // Handle nullable updated_at
+                int updatedAtIndex = cursor.getColumnIndex(COLUMN_REQUEST_UPDATED_AT);
+                request.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
                 requests.add(request);
             } while (cursor.moveToNext());
         }
@@ -820,19 +1079,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Request request = new Request();
                 request.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ID)));
                 request.setClientId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CLIENT_ID)));
-                request.setSociaId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SOCIA_ID)));
+                
+                // Handle nullable socia_id
+                int sociaIdIndex = cursor.getColumnIndex(COLUMN_REQUEST_SOCIA_ID);
+                request.setSociaId(sociaIdIndex >= 0 && !cursor.isNull(sociaIdIndex) ? cursor.getInt(sociaIdIndex) : 0);
+                
                 request.setServiceId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SERVICE_ID)));
                 request.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_STATUS)));
                 request.setScheduledDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_DATE)));
                 request.setScheduledTime(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_TIME)));
                 request.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ADDRESS)));
-                request.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_NOTES)));
+                
+                // Handle nullable notes
+                int notesIndex = cursor.getColumnIndex(COLUMN_REQUEST_NOTES);
+                request.setNotes(notesIndex >= 0 && !cursor.isNull(notesIndex) ? cursor.getString(notesIndex) : "");
+                
                 request.setTotalPrice(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_TOTAL_PRICE)));
                 request.setPaymentStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_PAYMENT_STATUS)));
-                request.setRating(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_RATING)));
-                request.setReview(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_REVIEW)));
+                
+                // Handle nullable rating
+                int ratingIndex = cursor.getColumnIndex(COLUMN_REQUEST_RATING);
+                request.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getInt(ratingIndex) : 0);
+                
+                // Handle nullable review
+                int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
+                request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
-                request.setUpdatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_UPDATED_AT)));
+                
+                // Handle nullable updated_at
+                int updatedAtIndex = cursor.getColumnIndex(COLUMN_REQUEST_UPDATED_AT);
+                request.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
                 requests.add(request);
             } while (cursor.moveToNext());
         }
@@ -852,19 +1129,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Request request = new Request();
                 request.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ID)));
                 request.setClientId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CLIENT_ID)));
-                request.setSociaId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SOCIA_ID)));
+                
+                // Handle nullable socia_id
+                int sociaIdIndex = cursor.getColumnIndex(COLUMN_REQUEST_SOCIA_ID);
+                request.setSociaId(sociaIdIndex >= 0 && !cursor.isNull(sociaIdIndex) ? cursor.getInt(sociaIdIndex) : 0);
+                
                 request.setServiceId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SERVICE_ID)));
                 request.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_STATUS)));
                 request.setScheduledDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_DATE)));
                 request.setScheduledTime(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_TIME)));
                 request.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ADDRESS)));
-                request.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_NOTES)));
+                
+                // Handle nullable notes
+                int notesIndex = cursor.getColumnIndex(COLUMN_REQUEST_NOTES);
+                request.setNotes(notesIndex >= 0 && !cursor.isNull(notesIndex) ? cursor.getString(notesIndex) : "");
+                
                 request.setTotalPrice(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_TOTAL_PRICE)));
                 request.setPaymentStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_PAYMENT_STATUS)));
-                request.setRating(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_RATING)));
-                request.setReview(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_REVIEW)));
+                
+                // Handle nullable rating
+                int ratingIndex = cursor.getColumnIndex(COLUMN_REQUEST_RATING);
+                request.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getInt(ratingIndex) : 0);
+                
+                // Handle nullable review
+                int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
+                request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
-                request.setUpdatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_UPDATED_AT)));
+                
+                // Handle nullable updated_at
+                int updatedAtIndex = cursor.getColumnIndex(COLUMN_REQUEST_UPDATED_AT);
+                request.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
                 requests.add(request);
             } while (cursor.moveToNext());
         }

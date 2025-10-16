@@ -11,12 +11,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.List;
+
 import com.example.loopv7.R;
 import com.example.loopv7.database.DatabaseHelper;
+import com.example.loopv7.models.Rating;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.User;
-import com.example.loopv7.models.Rating;
 import com.example.loopv7.utils.NotificationHelper;
 import com.example.loopv7.utils.SessionManager;
 import com.example.loopv7.utils.ValidationHelper;
@@ -173,6 +175,9 @@ public class RateServiceActivity extends AppCompatActivity {
             request.setReview(review);
             
             if (databaseHelper.updateRequest(request)) {
+                // Actualizar estadísticas de la socia
+                updateSociaRatingStats(request.getSociaId());
+                
                 Toast.makeText(this, "¡Gracias por tu calificación!", Toast.LENGTH_SHORT).show();
                 
                 // Enviar notificación a la socia
@@ -184,6 +189,39 @@ public class RateServiceActivity extends AppCompatActivity {
             }
         } else {
             Toast.makeText(this, "Error al registrar la calificación", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    /**
+     * Actualiza las estadísticas de calificación de la socia
+     */
+    private void updateSociaRatingStats(int sociaId) {
+        try {
+            // Obtener todas las calificaciones de la socia
+            List<Rating> ratings = databaseHelper.getRatingsByRatedId(sociaId);
+            
+            if (ratings != null && !ratings.isEmpty()) {
+                // Calcular promedio y total
+                double totalRating = 0;
+                int totalRatings = ratings.size();
+                
+                for (Rating rating : ratings) {
+                    totalRating += rating.getOverallRating();
+                }
+                
+                double averageRating = totalRating / totalRatings;
+                
+                // Actualizar la socia
+                User socia = databaseHelper.getUserById(sociaId);
+                if (socia != null) {
+                    socia.setRating(averageRating);
+                    socia.setTotalRatings(totalRatings);
+                    databaseHelper.updateUser(socia);
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't show to user
+            android.util.Log.e("RateServiceActivity", "Error updating socia rating stats", e);
         }
     }
 }

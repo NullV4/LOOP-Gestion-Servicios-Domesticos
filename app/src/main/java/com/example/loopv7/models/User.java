@@ -12,6 +12,8 @@ public class User {
     private String profileImage; // URL o path de la imagen de perfil
     private double rating; // Calificación promedio para socias
     private int totalRatings; // Total de calificaciones recibidas
+    private int completedServices; // Total de servicios completados para socias
+    private String lastServiceDate; // Fecha del último servicio completado
     private String location; // Ubicación del usuario
     private String createdAt;
     private String updatedAt;
@@ -70,6 +72,12 @@ public class User {
 
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+
+    public int getCompletedServices() { return completedServices; }
+    public void setCompletedServices(int completedServices) { this.completedServices = completedServices; }
+
+    public String getLastServiceDate() { return lastServiceDate; }
+    public void setLastServiceDate(String lastServiceDate) { this.lastServiceDate = lastServiceDate; }
 
     public boolean isCliente() { return "cliente".equals(role); }
     public boolean isSocia() { return "socia".equals(role); }

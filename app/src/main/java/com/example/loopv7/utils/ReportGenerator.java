@@ -1,8 +1,10 @@
 package com.example.loopv7.utils;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.example.loopv7.database.DatabaseHelper;
+import com.example.loopv7.models.Rating;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.SociaReport;
@@ -75,7 +77,7 @@ public class ReportGenerator {
             calculateEarningsStats(report, requests);
             
             // Calcular estadísticas de calificaciones
-            calculateRatingStats(report, requests);
+            calculateRatingStats(report, sociaId);
             
             // Calcular estadísticas de servicios
             calculateServiceStats(report, requests);
@@ -264,28 +266,55 @@ public class ReportGenerator {
     }
     
     /**
-     * Calcula estadísticas de calificaciones
+     * Calcula estadísticas de calificaciones desde la tabla ratings
      */
-    private void calculateRatingStats(SociaReport report, List<Request> requests) {
-        int totalRatings = 0;
-        double totalRatingSum = 0;
-        int[] ratingCounts = new int[5]; // 1-5 estrellas
-        
-        for (Request request : requests) {
-            if (request.getRating() > 0) {
-                totalRatings++;
-                totalRatingSum += request.getRating();
-                ratingCounts[request.getRating() - 1]++;
+    private void calculateRatingStats(SociaReport report, int sociaId) {
+        try {
+            // Obtener calificaciones desde la tabla ratings
+            List<Rating> ratings = databaseHelper.getRatingsByRatedId(sociaId);
+            
+            if (ratings == null || ratings.isEmpty()) {
+                report.setTotalRatings(0);
+                report.setAverageRating(0);
+                report.setFiveStarRatings(0);
+                report.setFourStarRatings(0);
+                report.setThreeStarRatings(0);
+                report.setTwoStarRatings(0);
+                report.setOneStarRatings(0);
+                return;
             }
+            
+            int totalRatings = ratings.size();
+            double totalRatingSum = 0;
+            int[] ratingCounts = new int[5]; // 1-5 estrellas
+            
+            for (Rating rating : ratings) {
+                int overallRating = rating.getOverallRating();
+                if (overallRating > 0 && overallRating <= 5) {
+                    totalRatingSum += overallRating;
+                    ratingCounts[overallRating - 1]++;
+                }
+            }
+            
+            report.setTotalRatings(totalRatings);
+            report.setAverageRating(totalRatings > 0 ? totalRatingSum / totalRatings : 0);
+            report.setFiveStarRatings(ratingCounts[4]);
+            report.setFourStarRatings(ratingCounts[3]);
+            report.setThreeStarRatings(ratingCounts[2]);
+            report.setTwoStarRatings(ratingCounts[1]);
+            report.setOneStarRatings(ratingCounts[0]);
+            
+        } catch (Exception e) {
+            Log.e("ReportGenerator", "Error calculando estadísticas de calificaciones", e);
+            // Valores por defecto en caso de error
+            report.setTotalRatings(0);
+            report.setAverageRating(0);
+            report.setFiveStarRatings(0);
+            report.setFourStarRatings(0);
+            report.setThreeStarRatings(0);
+            report.setTwoStarRatings(0);
+            report.setOneStarRatings(0);
         }
-        
-        report.setTotalRatings(totalRatings);
-        report.setAverageRating(totalRatings > 0 ? totalRatingSum / totalRatings : 0);
-        report.setFiveStarRatings(ratingCounts[4]);
-        report.setFourStarRatings(ratingCounts[3]);
-        report.setThreeStarRatings(ratingCounts[2]);
-        report.setTwoStarRatings(ratingCounts[1]);
-        report.setOneStarRatings(ratingCounts[0]);
     }
     
     /**

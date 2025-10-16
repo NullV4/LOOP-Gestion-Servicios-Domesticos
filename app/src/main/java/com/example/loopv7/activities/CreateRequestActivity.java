@@ -42,6 +42,8 @@ public class CreateRequestActivity extends AppCompatActivity {
     private Service selectedService;
     private Calendar selectedDate;
     private int selectedHour, selectedMinute;
+    private boolean isEditMode = false;
+    private int editRequestId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,8 +68,33 @@ public class CreateRequestActivity extends AppCompatActivity {
         int preselectedServiceId = getIntent().getIntExtra("service_id", -1);
         
         initializeViews();
+        checkEditMode();
         loadServices(preselectedServiceId);
         setupListeners();
+    }
+    
+    /**
+     * Verifica si estamos en modo de edición y carga los datos correspondientes
+     */
+    private void checkEditMode() {
+        editRequestId = getIntent().getIntExtra("edit_request_id", -1);
+        if (editRequestId != -1) {
+            isEditMode = true;
+            
+            // Cargar datos de la solicitud a editar
+            Request request = databaseHelper.getRequestById(editRequestId);
+            if (request != null) {
+                // Pre-llenar los campos con los datos existentes
+                etDate.setText(getIntent().getStringExtra("scheduled_date"));
+                etTime.setText(getIntent().getStringExtra("scheduled_time"));
+                etAddress.setText(getIntent().getStringExtra("address"));
+                etNotes.setText(getIntent().getStringExtra("notes"));
+                
+                // Cambiar el título y texto del botón
+                setTitle("Editar Solicitud");
+                btnCreateRequest.setText("💾 Actualizar Solicitud");
+            }
+        }
     }
     
     private void initializeViews() {
@@ -162,7 +189,13 @@ public class CreateRequestActivity extends AppCompatActivity {
         etDate.setOnClickListener(v -> showDatePicker());
         etTime.setOnClickListener(v -> showTimePicker());
         
-        btnCreateRequest.setOnClickListener(v -> createRequest());
+        btnCreateRequest.setOnClickListener(v -> {
+            if (isEditMode) {
+                updateRequest();
+            } else {
+                createRequest();
+            }
+        });
     }
     
     private void showDatePicker() {
@@ -284,6 +317,99 @@ public class CreateRequestActivity extends AppCompatActivity {
         } catch (Exception e) {
             errorHandler.handleCriticalError(ErrorHandler.ErrorType.UNKNOWN_ERROR, 
                 "Error inesperado al crear la solicitud", e);
+        }
+    }
+    
+    /**
+     * Actualiza una solicitud existente
+     */
+    private void updateRequest() {
+        // Validaciones robustas usando ValidationHelper (mismo código que createRequest)
+        boolean isValid = true;
+        
+        // Validar servicio seleccionado
+        if (selectedService == null) {
+            Toast.makeText(this, "Seleccione un servicio", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Validar fecha
+        String dateString = etDate.getText().toString().trim();
+        ValidationHelper.ValidationResult dateResult = validationHelper.validateDate(dateString, true);
+        if (!dateResult.isValid()) {
+            etDate.setError(dateResult.getMessage());
+            etDate.requestFocus();
+            isValid = false;
+        } else {
+            etDate.setError(null);
+        }
+        
+        // Validar horario
+        String timeString = etTime.getText().toString().trim();
+        ValidationHelper.ValidationResult timeResult = validationHelper.validateTime(timeString);
+        if (!timeResult.isValid()) {
+            etTime.setError(timeResult.getMessage());
+            etTime.requestFocus();
+            isValid = false;
+        } else {
+            etTime.setError(null);
+        }
+        
+        // Validar dirección
+        String address = etAddress.getText().toString().trim();
+        ValidationHelper.ValidationResult addressResult = validationHelper.validateAddress(address);
+        if (!addressResult.isValid()) {
+            etAddress.setError(addressResult.getMessage());
+            etAddress.requestFocus();
+            isValid = false;
+        } else {
+            etAddress.setError(null);
+        }
+        
+        // Validar notas (opcional)
+        String notes = etNotes.getText().toString().trim();
+        ValidationHelper.ValidationResult notesResult = validationHelper.validateNotes(notes);
+        if (!notesResult.isValid()) {
+            etNotes.setError(notesResult.getMessage());
+            etNotes.requestFocus();
+            isValid = false;
+        } else {
+            etNotes.setError(null);
+        }
+        
+        if (!isValid) {
+            return;
+        }
+        
+        // Actualizar solicitud
+        try {
+            Request request = databaseHelper.getRequestById(editRequestId);
+            if (request == null) {
+                Toast.makeText(this, "Solicitud no encontrada", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Actualizar campos
+            request.setServiceId(selectedService.getId());
+            request.setScheduledDate(dateString);
+            request.setScheduledTime(timeString);
+            request.setAddress(address);
+            request.setNotes(notes);
+            request.setTotalPrice(selectedService.getPrice());
+            request.setUpdatedAt(databaseHelper.getCurrentDateTime());
+            
+            boolean result = databaseHelper.updateRequest(request);
+            
+            if (result) {
+                Toast.makeText(this, "Solicitud actualizada exitosamente", Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                errorHandler.handleError(ErrorHandler.ErrorType.DATABASE_ERROR, 
+                    "No se pudo actualizar la solicitud en la base de datos");
+            }
+        } catch (Exception e) {
+            errorHandler.handleCriticalError(ErrorHandler.ErrorType.UNKNOWN_ERROR, 
+                "Error inesperado al actualizar la solicitud", e);
         }
     }
 }

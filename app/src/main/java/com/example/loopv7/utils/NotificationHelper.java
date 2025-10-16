@@ -13,8 +13,11 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.example.loopv7.R;
 import com.example.loopv7.MainActivity;
+import com.example.loopv7.activities.RequestDetailsActivity;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.User;
+import com.example.loopv7.models.Service;
+import com.example.loopv7.database.DatabaseHelper;
 
 /**
  * Clase helper para manejar notificaciones de la aplicación LOOP
@@ -43,13 +46,16 @@ public class NotificationHelper {
     private static final int NOTIFICATION_ID_PAYMENTS = 2000;
     private static final int NOTIFICATION_ID_RATINGS = 3000;
     private static final int NOTIFICATION_ID_STATUS = 4000;
+    private static final int NOTIFICATION_ID_SERVICE_COMPLETED = 5000;
     
     private Context context;
     private NotificationManagerCompat notificationManager;
+    private DatabaseHelper databaseHelper;
     
     public NotificationHelper(Context context) {
         this.context = context;
         this.notificationManager = NotificationManagerCompat.from(context);
+        this.databaseHelper = new DatabaseHelper(context);
         createNotificationChannels();
     }
     
@@ -336,5 +342,85 @@ public class NotificationHelper {
     public void cancelAllNotifications() {
         notificationManager.cancelAll();
         Log.d(TAG, "Todas las notificaciones canceladas");
+    }
+    
+    /**
+     * Envía notificación a la socia cuando completa un servicio
+     * 
+     * @param request Solicitud completada
+     */
+    public void notifyServiceCompletedToSocia(Request request) {
+        try {
+            // Crear notificación en la base de datos
+            databaseHelper.createNotification(
+                request.getSociaId(),
+                "🎉 ¡Servicio Completado!",
+                "Has completado exitosamente el servicio #" + request.getId() + 
+                ". El cliente podrá calificar tu trabajo.",
+                "service_completed",
+                "achievement",
+                "request",
+                request.getId()
+            );
+            
+            // Crear intent para abrir RequestDetailsActivity
+            Intent intent = new Intent(context, RequestDetailsActivity.class);
+            intent.putExtra("request_id", request.getId());
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 
+                NOTIFICATION_ID_SERVICE_COMPLETED + request.getId(), 
+                intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            // Crear notificación del sistema
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_STATUS)
+                .setSmallIcon(R.drawable.ic_check_circle)
+                .setContentTitle("🎉 ¡Servicio Completado!")
+                .setContentText("Has completado el servicio #" + request.getId())
+                .setStyle(new NotificationCompat.BigTextStyle()
+                    .bigText("¡Felicitaciones! Has completado exitosamente el servicio #" + request.getId() + 
+                            "\n\nCliente: " + getClientName(request.getClientId()) +
+                            "\nServicio: " + getServiceName(request.getServiceId()) +
+                            "\nPrecio: " + request.getFormattedPrice() +
+                            "\n\nEl cliente podrá calificar tu trabajo."))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setColor(context.getResources().getColor(R.color.success));
+            
+            notificationManager.notify(NOTIFICATION_ID_SERVICE_COMPLETED + request.getId(), builder.build());
+            Log.d(TAG, "Notificación de servicio completado enviada a socia");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error enviando notificación de servicio completado", e);
+        }
+    }
+    
+    /**
+     * Obtiene el nombre del cliente
+     */
+    private String getClientName(int clientId) {
+        try {
+            User client = databaseHelper.getUserById(clientId);
+            return client != null ? client.getName() : "Cliente";
+        } catch (Exception e) {
+            return "Cliente";
+        }
+    }
+    
+    /**
+     * Obtiene el nombre del servicio
+     */
+    private String getServiceName(int serviceId) {
+        try {
+            Service service = databaseHelper.getServiceById(serviceId);
+            return service != null ? service.getName() : "Servicio";
+        } catch (Exception e) {
+            return "Servicio";
+        }
     }
 }

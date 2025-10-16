@@ -5,6 +5,7 @@
     
     <!-- Colores principales de LOOP -->
     <color name="primary">#FF2E7D32</color>
+    <color name="primary_color">#FF2E7D32</color>
     <color name="primary_dark">#FF1B5E20</color>
     <color name="primary_light">#FF4CAF50</color>
     
@@ -24,8 +25,10 @@
     
     <!-- Colores de fondo -->
     <color name="background">#FFF5F5F5</color>
+    <color name="background_light">#FFF5F5F5</color>
     <color name="surface">#FFFFFFFF</color>
     <color name="surface_variant">#FFF3F3F3</color>
+    <color name="divider_color">#FFE0E0E0</color>
     
     <!-- Colores de texto -->
     <color name="text_primary">#FF212121</color>
