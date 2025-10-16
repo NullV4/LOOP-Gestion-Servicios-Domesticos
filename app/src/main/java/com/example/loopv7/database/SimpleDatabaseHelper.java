@@ -24,7 +24,7 @@ import java.util.Locale;
 
 public class SimpleDatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "loop_database_simple.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
     
     private ErrorHandler errorHandler;
 
@@ -70,6 +70,7 @@ public class SimpleDatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_REQUEST_PAYMENT_STATUS = "payment_status";
     private static final String COLUMN_REQUEST_RATING = "rating";
     private static final String COLUMN_REQUEST_REVIEW = "review";
+    private static final String COLUMN_REQUEST_IS_ARCHIVED = "is_archived";
     private static final String COLUMN_REQUEST_CREATED_AT = "created_at";
     private static final String COLUMN_REQUEST_UPDATED_AT = "updated_at";
 
@@ -186,6 +187,7 @@ public class SimpleDatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_REQUEST_PAYMENT_STATUS + " TEXT DEFAULT 'pendiente', " +
                 COLUMN_REQUEST_RATING + " INTEGER, " +
                 COLUMN_REQUEST_REVIEW + " TEXT, " +
+                COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0, " +
                 COLUMN_REQUEST_CREATED_AT + " TEXT, " +
                 COLUMN_REQUEST_UPDATED_AT + " TEXT" +
                 ")";
@@ -285,6 +287,12 @@ public class SimpleDatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LOCATION + " TEXT");
             
             Log.d("SimpleDatabaseHelper", "Base de datos actualizada a versión 5 - Perfiles enriquecidos agregados");
+        }
+        
+        if (oldVersion < 7) {
+            // Agregar campo de archivado a la tabla requests
+            db.execSQL("ALTER TABLE " + TABLE_REQUESTS + " ADD COLUMN " + COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0");
+            Log.d("SimpleDatabaseHelper", "Base de datos actualizada a versión 7 - Campo is_archived agregado");
         }
         
         if (oldVersion < 6) {
@@ -760,6 +768,7 @@ public class SimpleDatabaseHelper extends SQLiteOpenHelper {
             values.put(COLUMN_REQUEST_PAYMENT_STATUS, request.getPaymentStatus());
             values.put(COLUMN_REQUEST_RATING, request.getRating());
             values.put(COLUMN_REQUEST_REVIEW, request.getReview());
+            values.put(COLUMN_REQUEST_IS_ARCHIVED, request.isArchived() ? 1 : 0);
             values.put(COLUMN_REQUEST_UPDATED_AT, getCurrentDateTime());
             
             int result = db.update(TABLE_REQUESTS, values, COLUMN_REQUEST_ID + "=?", 

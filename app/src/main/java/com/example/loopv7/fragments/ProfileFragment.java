@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.loopv7.R;
+import com.example.loopv7.activities.ArchivedRequestsActivity;
 import com.example.loopv7.activities.EditProfileActivity;
 import com.example.loopv7.activities.RatingsActivity;
 import com.example.loopv7.auth.LoginActivity;
@@ -28,7 +29,7 @@ public class ProfileFragment extends Fragment {
     private TextView tvName, tvEmail, tvPhone, tvRole, tvLocation, tvDescription, tvRating, tvTotalRatings, tvCompletedServices;
     private LinearLayout layoutRating;
     private com.google.android.material.card.MaterialCardView layoutSociaStats;
-    private Button btnEditProfile, btnViewRatings, btnLogout;
+    private Button btnEditProfile, btnViewRatings, btnViewArchived, btnLogout;
     private SessionManager sessionManager;
     private DatabaseHelper databaseHelper;
 
@@ -70,6 +71,7 @@ public class ProfileFragment extends Fragment {
             layoutSociaStats = view.findViewById(R.id.layoutSociaStats);
             btnEditProfile = view.findViewById(R.id.btnEditProfile);
             btnViewRatings = view.findViewById(R.id.btnViewRatings);
+            btnViewArchived = view.findViewById(R.id.btnViewArchived);
             btnLogout = view.findViewById(R.id.btnLogout);
             
             // Verificar que todos los elementos críticos existen
@@ -220,6 +222,20 @@ public class ProfileFragment extends Fragment {
                         }
                     } catch (Exception e) {
                         Toast.makeText(getContext(), "Error al abrir calificaciones", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+        
+        if (btnViewArchived != null) {
+            btnViewArchived.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    try {
+                        Intent intent = new Intent(getContext(), ArchivedRequestsActivity.class);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "Error al abrir solicitudes archivadas", Toast.LENGTH_SHORT).show();
                     }
                 }
             });

@@ -84,6 +84,11 @@
             android:name=".activities.PaymentActivity"
             android:exported="false"
             android:theme="@style/Theme.LOOPv7" />
+            
+        <activity
+            android:name=".activities.ArchivedRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7" />
     </application>
 
 </manifest>

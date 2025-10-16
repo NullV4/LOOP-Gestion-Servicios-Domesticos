@@ -23,7 +23,7 @@ import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "loop_database.db";
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 8;
 
     // Tabla Users
     private static final String TABLE_USERS = "users";
@@ -70,6 +70,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_REQUEST_PAYMENT_STATUS = "payment_status";
     private static final String COLUMN_REQUEST_RATING = "rating";
     private static final String COLUMN_REQUEST_REVIEW = "review";
+    private static final String COLUMN_REQUEST_IS_ARCHIVED = "is_archived";
     private static final String COLUMN_REQUEST_CREATED_AT = "created_at";
     private static final String COLUMN_REQUEST_UPDATED_AT = "updated_at";
 
@@ -188,6 +189,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_REQUEST_PAYMENT_STATUS + " TEXT DEFAULT 'pendiente', " +
                 COLUMN_REQUEST_RATING + " INTEGER, " +
                 COLUMN_REQUEST_REVIEW + " TEXT, " +
+                COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0, " +
                 COLUMN_REQUEST_CREATED_AT + " TEXT, " +
                 COLUMN_REQUEST_UPDATED_AT + " TEXT, " +
                 "FOREIGN KEY(" + COLUMN_REQUEST_CLIENT_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "), " +
@@ -294,6 +296,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Agregar nuevas columnas para estadísticas de socias
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0");
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LAST_SERVICE_DATE + " TEXT");
+        }
+        
+        if (oldVersion < 8) {
+            // Agregar campo de archivado a la tabla requests
+            db.execSQL("ALTER TABLE " + TABLE_REQUESTS + " ADD COLUMN " + COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0");
         }
         
         if (oldVersion < 6) {
@@ -1010,6 +1017,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_REQUEST_PAYMENT_STATUS, request.getPaymentStatus());
         values.put(COLUMN_REQUEST_RATING, request.getRating());
         values.put(COLUMN_REQUEST_REVIEW, request.getReview());
+        values.put(COLUMN_REQUEST_IS_ARCHIVED, request.isArchived() ? 1 : 0);
         values.put(COLUMN_REQUEST_UPDATED_AT, getCurrentDateTime());
         
         int result = db.update(TABLE_REQUESTS, values, COLUMN_REQUEST_ID + "=?", 
@@ -1054,6 +1062,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 // Handle nullable review
                 int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
                 request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                
+                // Handle nullable isArchived
+                int isArchivedIndex = cursor.getColumnIndex(COLUMN_REQUEST_IS_ARCHIVED);
+                request.setArchived(isArchivedIndex >= 0 && cursor.getInt(isArchivedIndex) == 1);
                 
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
                 
@@ -1105,6 +1117,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
                 request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
                 
+                // Handle nullable isArchived
+                int isArchivedIndex = cursor.getColumnIndex(COLUMN_REQUEST_IS_ARCHIVED);
+                request.setArchived(isArchivedIndex >= 0 && cursor.getInt(isArchivedIndex) == 1);
+                
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
                 
                 // Handle nullable updated_at
@@ -1154,6 +1170,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 // Handle nullable review
                 int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
                 request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                
+                // Handle nullable isArchived
+                int isArchivedIndex = cursor.getColumnIndex(COLUMN_REQUEST_IS_ARCHIVED);
+                request.setArchived(isArchivedIndex >= 0 && cursor.getInt(isArchivedIndex) == 1);
                 
                 request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
                 

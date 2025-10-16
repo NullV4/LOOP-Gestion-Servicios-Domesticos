@@ -80,32 +80,44 @@ public class RequestsFragment extends Fragment {
             Log.d(TAG, "Loading requests for user ID: " + userId + ", role: " + userRole);
             
             if (sessionManager.isCliente()) {
-                // Cargar solicitudes del cliente
-                requests = databaseHelper.getRequestsByClientId(userId);
-                Log.d(TAG, "Found " + requests.size() + " requests for client");
+                // Cargar solicitudes del cliente (excluyendo archivadas)
+                List<Request> allRequests = databaseHelper.getRequestsByClientId(userId);
+                requests = new java.util.ArrayList<>();
+                for (Request request : allRequests) {
+                    if (!request.isArchived()) {
+                        requests.add(request);
+                    }
+                }
+                Log.d(TAG, "Found " + requests.size() + " non-archived requests for client");
             } else if (sessionManager.isSocia()) {
-                // Para socias: mostrar solicitudes aceptadas y completadas usando el nuevo método
+                // Para socias: mostrar solicitudes aceptadas y completadas (excluyendo archivadas)
                 List<Request> acceptedRequests = databaseHelper.getRequestsByStatus("aceptada");
                 List<Request> completedRequests = databaseHelper.getRequestsByStatus("completada");
                 
-                // Combinar y filtrar solo las de esta socia
+                // Combinar y filtrar solo las de esta socia y no archivadas
                 requests = new java.util.ArrayList<>();
                 for (Request request : acceptedRequests) {
-                    if (request.getSociaId() == userId) {
+                    if (request.getSociaId() == userId && !request.isArchived()) {
                         requests.add(request);
                     }
                 }
                 for (Request request : completedRequests) {
-                    if (request.getSociaId() == userId) {
+                    if (request.getSociaId() == userId && !request.isArchived()) {
                         requests.add(request);
                     }
                 }
                 
-                Log.d(TAG, "Found " + requests.size() + " accepted/completed requests for this socia");
+                Log.d(TAG, "Found " + requests.size() + " non-archived accepted/completed requests for this socia");
             } else {
-                // Para usuarios sin rol específico, mostrar solicitudes pendientes
-                requests = databaseHelper.getRequestsByStatus("pendiente");
-                Log.d(TAG, "Found " + requests.size() + " pending requests (default)");
+                // Para usuarios sin rol específico, mostrar solicitudes pendientes (excluyendo archivadas)
+                List<Request> allPendingRequests = databaseHelper.getRequestsByStatus("pendiente");
+                requests = new java.util.ArrayList<>();
+                for (Request request : allPendingRequests) {
+                    if (!request.isArchived()) {
+                        requests.add(request);
+                    }
+                }
+                Log.d(TAG, "Found " + requests.size() + " non-archived pending requests (default)");
             }
             
             if (requests.isEmpty()) {
@@ -139,8 +151,8 @@ public class RequestsFragment extends Fragment {
         }
         if (tvEmptyState != null) {
             String message = sessionManager.isCliente() ? 
-                "No tienes solicitudes creadas" : 
-                "No hay solicitudes disponibles en este momento";
+                "No tienes solicitudes activas\n(Las solicitudes completadas y calificadas se archivan automáticamente)" : 
+                "No hay solicitudes disponibles en este momento\n(Las solicitudes completadas y calificadas se archivan automáticamente)";
             tvEmptyState.setText(message);
         }
         Log.d(TAG, "Showing empty state - no requests found");

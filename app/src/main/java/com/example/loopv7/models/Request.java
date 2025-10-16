@@ -14,6 +14,7 @@ public class Request {
     private String paymentStatus; // "pendiente", "pagado", "reembolsado"
     private int rating;
     private String review;
+    private boolean isArchived; // Indica si la solicitud está archivada
     private String createdAt;
     private String updatedAt;
 
@@ -73,6 +74,9 @@ public class Request {
     public String getReview() { return review; }
     public void setReview(String review) { this.review = review; }
 
+    public boolean isArchived() { return isArchived; }
+    public void setArchived(boolean archived) { this.isArchived = archived; }
+
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
@@ -112,6 +116,14 @@ public class Request {
      */
     public boolean canBeRated() {
         return isCompleted() && "pagado".equals(paymentStatus) && rating == 0;
+    }
+    
+    /**
+     * Verifica si la solicitud puede ser archivada (debe estar completada, pagada y calificada)
+     * @return true si puede ser archivada
+     */
+    public boolean canBeArchived() {
+        return isCompleted() && "pagado".equals(paymentStatus) && rating > 0 && !isArchived;
     }
     
     /**

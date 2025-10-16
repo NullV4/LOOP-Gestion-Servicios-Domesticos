@@ -174,11 +174,14 @@ public class RateServiceActivity extends AppCompatActivity {
             request.setRating(rating);
             request.setReview(review);
             
+            // Archivar la solicitud después de calificar
+            request.setArchived(true);
+            
             if (databaseHelper.updateRequest(request)) {
                 // Actualizar estadísticas de la socia
                 updateSociaRatingStats(request.getSociaId());
                 
-                Toast.makeText(this, "¡Gracias por tu calificación!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "¡Gracias por tu calificación! La solicitud ha sido archivada.", Toast.LENGTH_SHORT).show();
                 
                 // Enviar notificación a la socia
                 notificationHelper.notifyRatingReceived(request, rating);
