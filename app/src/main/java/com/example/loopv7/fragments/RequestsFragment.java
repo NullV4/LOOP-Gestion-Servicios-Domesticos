@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.loopv7.R;
 import com.example.loopv7.activities.RequestDetailsActivity;
 import com.example.loopv7.adapters.RequestAdapter;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.utils.SessionManager;
 
@@ -28,7 +28,7 @@ public class RequestsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private RequestAdapter requestAdapter;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
     private TextView tvEmptyState;
     private View emptyStateLayout;
@@ -40,7 +40,7 @@ public class RequestsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_requests, container, false);
         
         try {
-            databaseHelper = new SimpleDatabaseHelper(getContext());
+            databaseHelper = new DatabaseHelper(getContext());
             sessionManager = new SessionManager(getContext());
             
             recyclerView = view.findViewById(R.id.recyclerViewRequests);
@@ -84,22 +84,27 @@ public class RequestsFragment extends Fragment {
                 requests = databaseHelper.getRequestsByClientId(userId);
                 Log.d(TAG, "Found " + requests.size() + " requests for client");
             } else if (sessionManager.isSocia()) {
-                // Para socias: mostrar solo sus solicitudes aceptadas
-                List<Request> myRequests = databaseHelper.getRequestsBySociaId(userId);
+                // Para socias: mostrar solicitudes aceptadas y completadas usando el nuevo método
+                List<Request> acceptedRequests = databaseHelper.getRequestsByStatus("aceptada");
+                List<Request> completedRequests = databaseHelper.getRequestsByStatus("completada");
                 
-                Log.d(TAG, "Found " + myRequests.size() + " my requests");
-                
-                // Filtrar solo las solicitudes aceptadas
+                // Combinar y filtrar solo las de esta socia
                 requests = new java.util.ArrayList<>();
-                for (Request request : myRequests) {
-                    if ("aceptada".equals(request.getStatus()) || "completada".equals(request.getStatus())) {
+                for (Request request : acceptedRequests) {
+                    if (request.getSociaId() == userId) {
+                        requests.add(request);
+                    }
+                }
+                for (Request request : completedRequests) {
+                    if (request.getSociaId() == userId) {
                         requests.add(request);
                     }
                 }
                 
-                Log.d(TAG, "Found " + requests.size() + " accepted/completed requests");
+                Log.d(TAG, "Found " + requests.size() + " accepted/completed requests for this socia");
             } else {
-                requests = databaseHelper.getPendingRequests();
+                // Para usuarios sin rol específico, mostrar solicitudes pendientes
+                requests = databaseHelper.getRequestsByStatus("pendiente");
                 Log.d(TAG, "Found " + requests.size() + " pending requests (default)");
             }
             

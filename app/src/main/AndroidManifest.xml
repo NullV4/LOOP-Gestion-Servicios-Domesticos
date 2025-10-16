@@ -2,6 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permisos para notificaciones -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Permisos para backup/restore -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- Permisos para ubicación -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -49,6 +62,21 @@
             
         <activity
             android:name=".activities.RateServiceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7" />
+            
+        <activity
+            android:name=".activities.EditProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7" />
+            
+        <activity
+            android:name=".activities.LocationSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7" />
+            
+        <activity
+            android:name=".activities.ReportsActivity"
             android:exported="false"
             android:theme="@style/Theme.LOOPv7" />
             

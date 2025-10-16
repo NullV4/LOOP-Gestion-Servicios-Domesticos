@@ -14,6 +14,7 @@ import com.example.loopv7.auth.LoginActivity;
 import com.example.loopv7.fragments.HomeFragment;
 import com.example.loopv7.fragments.PendingRequestsFragment;
 import com.example.loopv7.fragments.ProfileFragment;
+import com.example.loopv7.fragments.ReportsFragment;
 import com.example.loopv7.fragments.RequestsFragment;
 import com.example.loopv7.fragments.ServicesFragment;
 import com.example.loopv7.utils.SessionManager;
@@ -115,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
                 selectedFragment = new PendingRequestsFragment();
             } else if (itemId == R.id.nav_requests) {
                 selectedFragment = new RequestsFragment();
+            } else if (itemId == R.id.nav_reports) {
+                selectedFragment = new ReportsFragment();
             } else if (itemId == R.id.nav_profile) {
                 selectedFragment = new ProfileFragment();
             }
@@ -127,5 +130,42 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+    
+    /**
+     * Método público para seleccionar un fragment específico
+     * @param fragmentIndex Índice del fragment (0: Home, 1: Requests, 2: Services, 3: Profile)
+     */
+    public void selectFragment(int fragmentIndex) {
+        Fragment selectedFragment = null;
+        
+        switch (fragmentIndex) {
+            case 0:
+                selectedFragment = new HomeFragment();
+                bottomNavigationView.setSelectedItemId(R.id.nav_home);
+                break;
+            case 1:
+                selectedFragment = new RequestsFragment();
+                bottomNavigationView.setSelectedItemId(R.id.nav_requests);
+                break;
+            case 2:
+                selectedFragment = new ServicesFragment();
+                bottomNavigationView.setSelectedItemId(R.id.nav_services);
+                break;
+            case 3:
+                selectedFragment = new ReportsFragment();
+                bottomNavigationView.setSelectedItemId(R.id.nav_reports);
+                break;
+            case 4:
+                selectedFragment = new ProfileFragment();
+                bottomNavigationView.setSelectedItemId(R.id.nav_profile);
+                break;
+        }
+        
+        if (selectedFragment != null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentContainer, selectedFragment)
+                    .commit();
+        }
     }
 }

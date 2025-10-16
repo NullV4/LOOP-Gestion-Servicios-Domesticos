@@ -12,11 +12,14 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.User;
+import com.example.loopv7.models.Rating;
+import com.example.loopv7.utils.NotificationHelper;
 import com.example.loopv7.utils.SessionManager;
+import com.example.loopv7.utils.ValidationHelper;
 
 public class RateServiceActivity extends AppCompatActivity {
 
@@ -25,8 +28,10 @@ public class RateServiceActivity extends AppCompatActivity {
     private EditText etReview;
     private Button btnSubmitRating;
     
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
+    private NotificationHelper notificationHelper;
+    private ValidationHelper validationHelper;
     private Request request;
     private Service service;
     private User socia;
@@ -37,8 +42,10 @@ public class RateServiceActivity extends AppCompatActivity {
         setContentView(R.layout.activity_rate_service);
         
         // Inicializar componentes
-        databaseHelper = new SimpleDatabaseHelper(this);
+        databaseHelper = new DatabaseHelper(this);
         sessionManager = new SessionManager(this);
+        notificationHelper = new NotificationHelper(this);
+        validationHelper = new ValidationHelper(this);
         
         // Obtener ID de la solicitud
         int requestId = getIntent().getIntExtra("request_id", -1);
@@ -118,31 +125,65 @@ public class RateServiceActivity extends AppCompatActivity {
         int rating = (int) ratingBar.getRating();
         String review = etReview.getText().toString().trim();
         
-        // Validaciones
-        if (rating == 0) {
-            Toast.makeText(this, "Por favor seleccione una calificación", Toast.LENGTH_SHORT).show();
-            return;
+        // Validaciones robustas usando ValidationHelper
+        boolean isValid = true;
+        
+        // Validar calificación
+        ValidationHelper.ValidationResult ratingResult = validationHelper.validateRating(rating);
+        if (!ratingResult.isValid()) {
+            Toast.makeText(this, ratingResult.getMessage(), Toast.LENGTH_SHORT).show();
+            isValid = false;
         }
         
-        if (TextUtils.isEmpty(review)) {
-            Toast.makeText(this, "Por favor escriba una reseña", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        if (review.length() < 10) {
-            Toast.makeText(this, "La reseña debe tener al menos 10 caracteres", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        // Actualizar la solicitud con la calificación
-        request.setRating(rating);
-        request.setReview(review);
-        
-        if (databaseHelper.updateRequest(request)) {
-            Toast.makeText(this, "¡Gracias por tu calificación!", Toast.LENGTH_SHORT).show();
-            finish();
+        // Validar reseña
+        ValidationHelper.ValidationResult reviewResult = validationHelper.validateReview(review);
+        if (!reviewResult.isValid()) {
+            etReview.setError(reviewResult.getMessage());
+            etReview.requestFocus();
+            isValid = false;
         } else {
-            Toast.makeText(this, "Error al enviar la calificación", Toast.LENGTH_SHORT).show();
+            etReview.setError(null);
+        }
+        
+        if (!isValid) {
+            return;
+        }
+        
+        // Crear registro de calificación detallada en la tabla ratings
+        Rating ratingRecord = new Rating();
+        ratingRecord.setRequestId(request.getId());
+        ratingRecord.setRaterId(sessionManager.getCurrentUserId());
+        ratingRecord.setRatedId(request.getSociaId());
+        ratingRecord.setOverallRating(rating);
+        ratingRecord.setQualityRating(rating); // Por simplicidad, usar la misma calificación
+        ratingRecord.setPunctualityRating(rating);
+        ratingRecord.setCommunicationRating(rating);
+        ratingRecord.setCleanlinessRating(rating);
+        ratingRecord.setReview(review);
+        ratingRecord.setAnonymous(false);
+        ratingRecord.setStatus("activo");
+        ratingRecord.setCreatedAt(databaseHelper.getCurrentDateTime());
+        
+        // Insertar calificación en la base de datos
+        long ratingId = databaseHelper.insertRating(ratingRecord);
+        
+        if (ratingId != -1) {
+            // Actualizar la solicitud con la calificación básica (para compatibilidad)
+            request.setRating(rating);
+            request.setReview(review);
+            
+            if (databaseHelper.updateRequest(request)) {
+                Toast.makeText(this, "¡Gracias por tu calificación!", Toast.LENGTH_SHORT).show();
+                
+                // Enviar notificación a la socia
+                notificationHelper.notifyRatingReceived(request, rating);
+                
+                finish();
+            } else {
+                Toast.makeText(this, "Error al actualizar la solicitud", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "Error al registrar la calificación", Toast.LENGTH_SHORT).show();
         }
     }
 }

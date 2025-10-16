@@ -5,7 +5,7 @@ public class Request {
     private int clientId;
     private int sociaId;
     private int serviceId;
-    private String status; // "pendiente", "aceptada", "rechazada", "completada", "cancelada"
+    private String status; // "pendiente", "aceptada", "rechazada", "en_progreso", "completada", "cancelada"
     private String scheduledDate;
     private String scheduledTime;
     private String address;
@@ -86,6 +86,79 @@ public class Request {
     public boolean isPending() { return "pendiente".equals(status); }
     public boolean isAccepted() { return "aceptada".equals(status); }
     public boolean isRejected() { return "rechazada".equals(status); }
+    public boolean isInProgress() { return "en_progreso".equals(status); }
     public boolean isCompleted() { return "completada".equals(status); }
     public boolean isCancelled() { return "cancelada".equals(status); }
+    
+    /**
+     * Verifica si el servicio puede ser iniciado (debe estar aceptado)
+     * @return true si puede ser iniciado
+     */
+    public boolean canBeStarted() {
+        return isAccepted() && "pagado".equals(paymentStatus);
+    }
+    
+    /**
+     * Verifica si el servicio puede ser completado (debe estar en progreso)
+     * @return true si puede ser completado
+     */
+    public boolean canBeCompleted() {
+        return isInProgress();
+    }
+    
+    /**
+     * Verifica si el servicio puede ser calificado (debe estar completado y pagado)
+     * @return true si puede ser calificado
+     */
+    public boolean canBeRated() {
+        return isCompleted() && "pagado".equals(paymentStatus) && rating == 0;
+    }
+    
+    /**
+     * Obtiene el texto legible del estado
+     * @return String con el estado en formato legible
+     */
+    public String getStatusText() {
+        switch (status) {
+            case "pendiente": return "Pendiente";
+            case "aceptada": return "Aceptada";
+            case "rechazada": return "Rechazada";
+            case "en_progreso": return "En Progreso";
+            case "completada": return "Completada";
+            case "cancelada": return "Cancelada";
+            default: return status;
+        }
+    }
+    
+    /**
+     * Obtiene el color del estado para la UI
+     * @return String con el nombre del color
+     */
+    public String getStatusColor() {
+        switch (status) {
+            case "pendiente": return "warning";
+            case "aceptada": return "info";
+            case "rechazada": return "error";
+            case "en_progreso": return "warning";
+            case "completada": return "success";
+            case "cancelada": return "secondary";
+            default: return "text_primary";
+        }
+    }
+    
+    /**
+     * Obtiene el ícono del estado para la UI
+     * @return String con el emoji del estado
+     */
+    public String getStatusIcon() {
+        switch (status) {
+            case "pendiente": return "⏳";
+            case "aceptada": return "✅";
+            case "rechazada": return "❌";
+            case "en_progreso": return "🔄";
+            case "completada": return "🎉";
+            case "cancelada": return "🚫";
+            default: return "❓";
+        }
+    }
 }

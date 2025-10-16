@@ -12,6 +12,7 @@ public class User {
     private String profileImage; // URL o path de la imagen de perfil
     private double rating; // Calificación promedio para socias
     private int totalRatings; // Total de calificaciones recibidas
+    private String location; // Ubicación del usuario
     private String createdAt;
     private String updatedAt;
 
@@ -67,11 +68,60 @@ public class User {
     public int getTotalRatings() { return totalRatings; }
     public void setTotalRatings(int totalRatings) { this.totalRatings = totalRatings; }
 
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+
     public boolean isCliente() { return "cliente".equals(role); }
     public boolean isSocia() { return "socia".equals(role); }
     
     public String getFormattedRating() {
         if (totalRatings == 0) return "Sin calificaciones";
         return String.format("%.1f ⭐ (%d calificaciones)", rating, totalRatings);
+    }
+    
+    /**
+     * Verifica si el usuario tiene una descripción
+     * @return true si tiene descripción
+     */
+    public boolean hasDescription() {
+        return description != null && !description.trim().isEmpty();
+    }
+    
+    /**
+     * Verifica si el usuario tiene una imagen de perfil
+     * @return true si tiene imagen de perfil
+     */
+    public boolean hasProfileImage() {
+        return profileImage != null && !profileImage.trim().isEmpty();
+    }
+    
+    /**
+     * Verifica si el usuario tiene ubicación
+     * @return true si tiene ubicación
+     */
+    public boolean hasLocation() {
+        return location != null && !location.trim().isEmpty();
+    }
+    
+    /**
+     * Obtiene la descripción o un mensaje por defecto
+     * @return descripción o mensaje por defecto
+     */
+    public String getDescriptionOrDefault() {
+        if (hasDescription()) {
+            return description;
+        }
+        return isSocia() ? "Socia trabajadora sin descripción" : "Cliente sin descripción";
+    }
+    
+    /**
+     * Obtiene la ubicación o un mensaje por defecto
+     * @return ubicación o mensaje por defecto
+     */
+    public String getLocationOrDefault() {
+        if (hasLocation()) {
+            return location;
+        }
+        return "Ubicación no especificada";
     }
 }

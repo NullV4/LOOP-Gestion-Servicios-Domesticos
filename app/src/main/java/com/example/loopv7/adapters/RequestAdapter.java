@@ -116,11 +116,12 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.RequestV
 
         private String getStatusText(String status) {
             switch (status) {
-                case "pendiente": return "Pendiente";
-                case "aceptada": return "Aceptada";
-                case "rechazada": return "Rechazada";
-                case "completada": return "Completada";
-                case "cancelada": return "Cancelada";
+                case "pendiente": return "⏳ Pendiente";
+                case "aceptada": return "✅ Aceptada";
+                case "rechazada": return "❌ Rechazada";
+                case "en_progreso": return "🔄 En Progreso";
+                case "completada": return "🎉 Completada";
+                case "cancelada": return "🚫 Cancelada";
                 default: return status;
             }
         }
@@ -130,6 +131,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.RequestV
                 case "pendiente": return itemView.getContext().getColor(R.color.warning);
                 case "aceptada": return itemView.getContext().getColor(R.color.info);
                 case "rechazada": return itemView.getContext().getColor(R.color.error);
+                case "en_progreso": return itemView.getContext().getColor(R.color.warning);
                 case "completada": return itemView.getContext().getColor(R.color.success);
                 case "cancelada": return itemView.getContext().getColor(R.color.secondary);
                 default: return itemView.getContext().getColor(R.color.text_primary);

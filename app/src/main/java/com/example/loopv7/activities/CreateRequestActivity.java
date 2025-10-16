@@ -5,6 +5,7 @@ import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -15,11 +16,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.User;
 import com.example.loopv7.utils.SessionManager;
+import com.example.loopv7.utils.ValidationHelper;
+import com.example.loopv7.utils.ErrorHandler;
 
 import java.util.Calendar;
 import java.util.List;
@@ -31,8 +34,10 @@ public class CreateRequestActivity extends AppCompatActivity {
     private TextView tvTotalPrice;
     private Button btnCreateRequest;
     
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
+    private ValidationHelper validationHelper;
+    private ErrorHandler errorHandler;
     private List<Service> services;
     private Service selectedService;
     private Calendar selectedDate;
@@ -44,8 +49,10 @@ public class CreateRequestActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_request);
         
         // Inicializar componentes
-        databaseHelper = new SimpleDatabaseHelper(this);
+        databaseHelper = new DatabaseHelper(this);
         sessionManager = new SessionManager(this);
+        validationHelper = new ValidationHelper(this);
+        errorHandler = ErrorHandler.getInstance(this);
         selectedDate = Calendar.getInstance();
         
         // Verificar que el usuario sea cliente
@@ -55,8 +62,11 @@ public class CreateRequestActivity extends AppCompatActivity {
             return;
         }
         
+        // Obtener service_id del intent si viene desde ServicesFragment
+        int preselectedServiceId = getIntent().getIntExtra("service_id", -1);
+        
         initializeViews();
-        loadServices();
+        loadServices(preselectedServiceId);
         setupListeners();
     }
     
@@ -74,7 +84,7 @@ public class CreateRequestActivity extends AppCompatActivity {
         etTime.setFocusable(false);
     }
     
-    private void loadServices() {
+    private void loadServices(int preselectedServiceId) {
         services = databaseHelper.getAllServices();
         
         if (services.isEmpty()) {
@@ -83,19 +93,55 @@ public class CreateRequestActivity extends AppCompatActivity {
             return;
         }
         
-        // Crear adapter para el spinner
+        // Crear adapter para el spinner con toString() simplificado
         ArrayAdapter<Service> adapter = new ArrayAdapter<Service>(this, android.R.layout.simple_spinner_item, services) {
             @Override
             public String toString() {
-                return getItem(getPosition(getItem(getPosition(null)))).getName() + " - " + getItem(getPosition(getItem(getPosition(null)))).getFormattedPrice();
+                // Este método no se usa para mostrar el texto en el spinner
+                // El texto se muestra usando getView() o getDropDownView()
+                return "";
+            }
+            
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView textView = (TextView) view.findViewById(android.R.id.text1);
+                Service service = getItem(position);
+                if (service != null) {
+                    textView.setText(service.getName() + " - " + service.getFormattedPrice());
+                }
+                return view;
+            }
+            
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                View view = super.getDropDownView(position, convertView, parent);
+                TextView textView = (TextView) view.findViewById(android.R.id.text1);
+                Service service = getItem(position);
+                if (service != null) {
+                    textView.setText(service.getName() + " - " + service.getFormattedPrice());
+                }
+                return view;
             }
         };
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerService.setAdapter(adapter);
         
-        // Seleccionar primer servicio por defecto
+        // Seleccionar servicio preseleccionado o el primero por defecto
+        int selectedPosition = 0;
+        if (preselectedServiceId != -1) {
+            // Buscar el servicio preseleccionado
+            for (int i = 0; i < services.size(); i++) {
+                if (services.get(i).getId() == preselectedServiceId) {
+                    selectedPosition = i;
+                    break;
+                }
+            }
+        }
+        
         if (!services.isEmpty()) {
-            selectedService = services.get(0);
+            selectedService = services.get(selectedPosition);
+            spinnerService.setSelection(selectedPosition);
             updateTotalPrice();
         }
         
@@ -154,53 +200,90 @@ public class CreateRequestActivity extends AppCompatActivity {
     }
     
     private void createRequest() {
-        // Validaciones
+        // Validaciones robustas usando ValidationHelper
+        boolean isValid = true;
+        
+        // Validar servicio seleccionado
         if (selectedService == null) {
             Toast.makeText(this, "Seleccione un servicio", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        if (TextUtils.isEmpty(etDate.getText().toString())) {
-            etDate.setError("Seleccione una fecha");
+        // Validar fecha
+        String dateString = etDate.getText().toString().trim();
+        ValidationHelper.ValidationResult dateResult = validationHelper.validateDate(dateString, true);
+        if (!dateResult.isValid()) {
+            etDate.setError(dateResult.getMessage());
             etDate.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etDate.setError(null);
         }
         
-        if (TextUtils.isEmpty(etTime.getText().toString())) {
-            etTime.setError("Seleccione una hora");
+        // Validar horario
+        String timeString = etTime.getText().toString().trim();
+        ValidationHelper.ValidationResult timeResult = validationHelper.validateTime(timeString);
+        if (!timeResult.isValid()) {
+            etTime.setError(timeResult.getMessage());
             etTime.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etTime.setError(null);
         }
         
-        if (TextUtils.isEmpty(etAddress.getText().toString().trim())) {
-            etAddress.setError("La dirección es requerida");
+        // Validar dirección
+        String address = etAddress.getText().toString().trim();
+        ValidationHelper.ValidationResult addressResult = validationHelper.validateAddress(address);
+        if (!addressResult.isValid()) {
+            etAddress.setError(addressResult.getMessage());
             etAddress.requestFocus();
+            isValid = false;
+        } else {
+            etAddress.setError(null);
+        }
+        
+        // Validar notas (opcional)
+        String notes = etNotes.getText().toString().trim();
+        ValidationHelper.ValidationResult notesResult = validationHelper.validateNotes(notes);
+        if (!notesResult.isValid()) {
+            etNotes.setError(notesResult.getMessage());
+            etNotes.requestFocus();
+            isValid = false;
+        } else {
+            etNotes.setError(null);
+        }
+        
+        if (!isValid) {
             return;
         }
         
         // Crear solicitud
-        String date = etDate.getText().toString();
-        String time = etTime.getText().toString();
-        String address = etAddress.getText().toString().trim();
-        String notes = etNotes.getText().toString().trim();
-        
-        Request request = new Request(
-                sessionManager.getCurrentUserId(),
-                selectedService.getId(),
-                date,
-                time,
-                address,
-                notes,
-                selectedService.getPrice()
-        );
-        
-        long result = databaseHelper.insertRequest(request);
-        
-        if (result != -1) {
-            Toast.makeText(this, "Solicitud creada exitosamente", Toast.LENGTH_SHORT).show();
-            finish();
-        } else {
-            Toast.makeText(this, "Error al crear la solicitud", Toast.LENGTH_SHORT).show();
+        try {
+            String date = dateString;
+            String time = timeString;
+            
+            Request request = new Request(
+                    sessionManager.getCurrentUserId(),
+                    selectedService.getId(),
+                    date,
+                    time,
+                    address,
+                    notes,
+                    selectedService.getPrice()
+            );
+            
+            long result = databaseHelper.insertRequest(request);
+            
+            if (result != -1) {
+                Toast.makeText(this, "Solicitud creada exitosamente", Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                errorHandler.handleError(ErrorHandler.ErrorType.DATABASE_ERROR, 
+                    "No se pudo crear la solicitud en la base de datos");
+            }
+        } catch (Exception e) {
+            errorHandler.handleCriticalError(ErrorHandler.ErrorType.UNKNOWN_ERROR, 
+                "Error inesperado al crear la solicitud", e);
         }
     }
 }

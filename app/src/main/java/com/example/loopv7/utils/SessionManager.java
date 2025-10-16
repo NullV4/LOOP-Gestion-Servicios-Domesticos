@@ -12,6 +12,7 @@ public class SessionManager {
     private static final String KEY_USER_NAME = "user_name";
     private static final String KEY_USER_ROLE = "user_role";
     private static final String KEY_USER_PHONE = "user_phone";
+    private static final String KEY_USER_JSON = "user_json";
 
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
@@ -80,6 +81,18 @@ public class SessionManager {
 
     public void clearSession() {
         editor.clear();
+        editor.commit();
+    }
+    
+    /**
+     * Actualiza el usuario actual en la sesión
+     * @param user Usuario actualizado
+     */
+    public void updateCurrentUser(User user) {
+        editor.putString(KEY_USER_NAME, user.getName());
+        editor.putString(KEY_USER_EMAIL, user.getEmail());
+        editor.putString(KEY_USER_PHONE, user.getPhone());
+        editor.putString(KEY_USER_ROLE, user.getRole());
         editor.commit();
     }
 }

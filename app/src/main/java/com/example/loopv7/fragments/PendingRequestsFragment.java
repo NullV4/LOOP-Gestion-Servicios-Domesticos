@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.loopv7.R;
 import com.example.loopv7.activities.RequestDetailsActivity;
 import com.example.loopv7.adapters.RequestAdapter;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.utils.SessionManager;
 
@@ -26,7 +26,7 @@ public class PendingRequestsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private RequestAdapter requestAdapter;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
     private TextView tvEmptyState;
 
@@ -35,7 +35,7 @@ public class PendingRequestsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_pending_requests, container, false);
         
-        databaseHelper = new SimpleDatabaseHelper(getContext());
+        databaseHelper = new DatabaseHelper(getContext());
         sessionManager = new SessionManager(getContext());
         
         recyclerView = view.findViewById(R.id.recyclerViewPendingRequests);
@@ -49,7 +49,7 @@ public class PendingRequestsFragment extends Fragment {
     }
     
     private void loadPendingRequests() {
-        List<Request> pendingRequests = databaseHelper.getPendingRequests();
+        List<Request> pendingRequests = databaseHelper.getRequestsByStatus("pendiente");
         
         if (pendingRequests.isEmpty()) {
             recyclerView.setVisibility(View.GONE);

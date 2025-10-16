@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.loopv7.R;
 import com.example.loopv7.database.SimpleDatabaseHelper;
 import com.example.loopv7.models.User;
+import com.example.loopv7.utils.ValidationHelper;
+import com.example.loopv7.utils.ErrorHandler;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -25,6 +27,8 @@ public class RegisterActivity extends AppCompatActivity {
     private Button btnRegister;
     private TextView tvLogin;
     private SimpleDatabaseHelper databaseHelper;
+    private ValidationHelper validationHelper;
+    private ErrorHandler errorHandler;
     private String selectedRole = "cliente";
 
     @Override
@@ -34,6 +38,8 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Inicializar componentes
         databaseHelper = new SimpleDatabaseHelper(this);
+        validationHelper = new ValidationHelper(this);
+        errorHandler = ErrorHandler.getInstance(this);
 
         // Inicializar vistas
         etName = findViewById(R.id.etName);
@@ -92,68 +98,80 @@ public class RegisterActivity extends AppCompatActivity {
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
 
-        // Validaciones
-        if (TextUtils.isEmpty(name)) {
-            etName.setError("El nombre es requerido");
+        // Validaciones robustas usando ValidationHelper
+        boolean isValid = true;
+        
+        // Validar nombre
+        ValidationHelper.ValidationResult nameResult = validationHelper.validateName(name);
+        if (!nameResult.isValid()) {
+            etName.setError(nameResult.getMessage());
             etName.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etName.setError(null);
         }
-
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("El email es requerido");
+        
+        // Validar email
+        ValidationHelper.ValidationResult emailResult = validationHelper.validateEmail(email, true);
+        if (!emailResult.isValid()) {
+            etEmail.setError(emailResult.getMessage());
             etEmail.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etEmail.setError(null);
         }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            etEmail.setError("Ingrese un email válido");
-            etEmail.requestFocus();
-            return;
-        }
-
-        if (TextUtils.isEmpty(phone)) {
-            etPhone.setError("El teléfono es requerido");
+        
+        // Validar teléfono
+        ValidationHelper.ValidationResult phoneResult = validationHelper.validatePhone(phone);
+        if (!phoneResult.isValid()) {
+            etPhone.setError(phoneResult.getMessage());
             etPhone.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etPhone.setError(null);
         }
-
-        if (TextUtils.isEmpty(password)) {
-            etPassword.setError("La contraseña es requerida");
+        
+        // Validar contraseña
+        ValidationHelper.ValidationResult passwordResult = validationHelper.validatePassword(password);
+        if (!passwordResult.isValid()) {
+            etPassword.setError(passwordResult.getMessage());
             etPassword.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etPassword.setError(null);
         }
-
-        if (password.length() < 6) {
-            etPassword.setError("La contraseña debe tener al menos 6 caracteres");
-            etPassword.requestFocus();
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            etConfirmPassword.setError("Las contraseñas no coinciden");
+        
+        // Validar confirmación de contraseña
+        ValidationHelper.ValidationResult confirmResult = validationHelper.validatePasswordConfirmation(password, confirmPassword);
+        if (!confirmResult.isValid()) {
+            etConfirmPassword.setError(confirmResult.getMessage());
             etConfirmPassword.requestFocus();
-            return;
+            isValid = false;
+        } else {
+            etConfirmPassword.setError(null);
         }
-
-        // Verificar si el email ya existe
-        User existingUser = databaseHelper.getUserByEmail(email);
-        if (existingUser != null) {
-            etEmail.setError("Este email ya está registrado");
-            etEmail.requestFocus();
+        
+        if (!isValid) {
             return;
         }
 
         // Crear nuevo usuario
-        User newUser = new User(email, password, name, phone, selectedRole);
-        long result = databaseHelper.insertUser(newUser);
+        try {
+            User newUser = new User(email, password, name, phone, selectedRole);
+            long result = databaseHelper.insertUser(newUser);
 
-        if (result != -1) {
-            Toast.makeText(this, "Registro exitoso. Ahora puede iniciar sesión.", Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-        } else {
-            Toast.makeText(this, "Error al registrar usuario", Toast.LENGTH_SHORT).show();
+            if (result != -1) {
+                Toast.makeText(this, "Registro exitoso. Ahora puede iniciar sesión.", Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                startActivity(intent);
+                finish();
+            } else {
+                errorHandler.handleError(ErrorHandler.ErrorType.DATABASE_ERROR, 
+                    "No se pudo crear el usuario en la base de datos");
+            }
+        } catch (Exception e) {
+            errorHandler.handleCriticalError(ErrorHandler.ErrorType.UNKNOWN_ERROR, 
+                "Error inesperado durante el registro", e);
         }
     }
 }
