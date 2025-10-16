@@ -92,34 +92,4 @@ graph TD
     I --> J[Servicio finalizado]
 ```
 
-## 🎨 Capturas de Pantalla
 
-*[Aquí puedes agregar capturas de pantalla de la aplicación]*
-
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## 👨‍💻 Autor
-
-**Tu Nombre**
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- Email: tu-email@ejemplo.com
-
-## 📞 Contacto
-
-Si tienes preguntas o sugerencias, no dudes en contactarme.
-
----
-
-⭐ ¡No olvides darle una estrella al proyecto si te gusta!
