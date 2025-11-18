@@ -13,6 +13,9 @@
     <!-- Permisos para ubicación -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    
+    <!-- Permisos para cámara -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
@@ -87,6 +90,17 @@
             
         <activity
             android:name=".activities.ArchivedRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7" />
+            
+        <activity
+            android:name=".activities.OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LOOPv7"
+            android:screenOrientation="portrait" />
+            
+        <activity
+            android:name=".activities.ProfilePhotoActivity"
             android:exported="false"
             android:theme="@style/Theme.LOOPv7" />
     </application>

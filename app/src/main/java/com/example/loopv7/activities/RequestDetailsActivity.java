@@ -310,6 +310,12 @@ public class RequestDetailsActivity extends AppCompatActivity {
             
             // Cuando se completa el servicio, actualizar estadísticas de la socia
             updateSociaStats();
+            
+            // Si ya tiene calificación, archivar automáticamente
+            if (request.getRating() > 0) {
+                request.setArchived(true);
+                message += ". La solicitud ha sido archivada (ya estaba calificada)";
+            }
         }
         
         request.setStatus(newStatus);

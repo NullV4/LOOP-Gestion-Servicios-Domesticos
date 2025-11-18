@@ -48,7 +48,7 @@ public class Service {
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
     public String getFormattedPrice() {
-        return String.format("$%.2f", price);
+        return String.format("S/ %.2f", price);
     }
 
     public String getFormattedDuration() {

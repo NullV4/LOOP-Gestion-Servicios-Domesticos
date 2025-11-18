@@ -75,22 +75,22 @@ public class ArchivedRequestsActivity extends AppCompatActivity {
                 for (Request request : allRequests) {
                     if (request.isArchived()) {
                         archivedRequests.add(request);
+                        Log.d(TAG, "Found archived request ID: " + request.getId() + " for client");
                     }
                 }
                 Log.d(TAG, "Found " + archivedRequests.size() + " archived requests for client");
             } else if (sessionManager.isSocia()) {
-                // Para socias: cargar solicitudes archivadas donde son la socia asignada
-                List<Request> allAcceptedRequests = databaseHelper.getRequestsByStatus("aceptada");
-                List<Request> allCompletedRequests = databaseHelper.getRequestsByStatus("completada");
+                // Para socias: obtener todas las solicitudes de esta socia y filtrar las archivadas
+                List<Request> allSociaRequests = databaseHelper.getRequestsBySociaId(userId);
+                Log.d(TAG, "Total requests for socia: " + allSociaRequests.size());
                 
-                for (Request request : allAcceptedRequests) {
-                    if (request.getSociaId() == userId && request.isArchived()) {
+                for (Request request : allSociaRequests) {
+                    if (request.isArchived()) {
                         archivedRequests.add(request);
-                    }
-                }
-                for (Request request : allCompletedRequests) {
-                    if (request.getSociaId() == userId && request.isArchived()) {
-                        archivedRequests.add(request);
+                        Log.d(TAG, "Found archived request ID: " + request.getId() + 
+                              " - Status: " + request.getStatus() + 
+                              " - Rating: " + request.getRating() + 
+                              " - Payment: " + request.getPaymentStatus());
                     }
                 }
                 

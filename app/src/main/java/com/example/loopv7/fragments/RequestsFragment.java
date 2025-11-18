@@ -2,6 +2,8 @@ package com.example.loopv7.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +23,7 @@ import com.example.loopv7.adapters.RequestAdapter;
 import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.utils.SessionManager;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
@@ -32,6 +35,9 @@ public class RequestsFragment extends Fragment {
     private SessionManager sessionManager;
     private TextView tvEmptyState;
     private View emptyStateLayout;
+    private TextInputEditText etSearch;
+    private List<Request> allRequests;
+    private List<Request> filteredRequests;
     private static final String TAG = "RequestsFragment";
 
     @Nullable
@@ -49,19 +55,21 @@ public class RequestsFragment extends Fragment {
             // Initialize empty state views
             emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
             tvEmptyState = view.findViewById(R.id.tvEmptyState);
+            etSearch = view.findViewById(R.id.etSearch);
             
             // Configurar título según el rol
             TextView tvTitle = view.findViewById(R.id.tvTitle);
             if (sessionManager.isCliente()) {
                 tvTitle.setText("Mis Solicitudes");
             } else if (sessionManager.isSocia()) {
-                tvTitle.setText("Solicitudes Disponibles");
+                tvTitle.setText("Solicitudes Aceptadas");
             }
             
             Log.d(TAG, "User role: " + sessionManager.getCurrentUserRole());
             Log.d(TAG, "User ID: " + sessionManager.getCurrentUserId());
             
             loadRequests();
+            setupSearch();
             
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreateView: " + e.getMessage(), e);
@@ -73,7 +81,6 @@ public class RequestsFragment extends Fragment {
     
     private void loadRequests() {
         try {
-            List<Request> requests;
             int userId = sessionManager.getCurrentUserId();
             String userRole = sessionManager.getCurrentUserRole();
             
@@ -81,64 +88,78 @@ public class RequestsFragment extends Fragment {
             
             if (sessionManager.isCliente()) {
                 // Cargar solicitudes del cliente (excluyendo archivadas)
-                List<Request> allRequests = databaseHelper.getRequestsByClientId(userId);
-                requests = new java.util.ArrayList<>();
-                for (Request request : allRequests) {
+                List<Request> clientRequests = databaseHelper.getRequestsByClientId(userId);
+                allRequests = new java.util.ArrayList<>();
+                for (Request request : clientRequests) {
                     if (!request.isArchived()) {
-                        requests.add(request);
+                        allRequests.add(request);
                     }
                 }
-                Log.d(TAG, "Found " + requests.size() + " non-archived requests for client");
+                Log.d(TAG, "Found " + allRequests.size() + " non-archived requests for client");
             } else if (sessionManager.isSocia()) {
-                // Para socias: mostrar solicitudes aceptadas y completadas (excluyendo archivadas)
-                List<Request> acceptedRequests = databaseHelper.getRequestsByStatus("aceptada");
-                List<Request> completedRequests = databaseHelper.getRequestsByStatus("completada");
+                // Para socias: mostrar solicitudes aceptadas, en progreso y completadas (excluyendo archivadas)
+                // Obtener todas las solicitudes de esta socia
+                List<Request> sociaRequests = databaseHelper.getRequestsBySociaId(userId);
                 
-                // Combinar y filtrar solo las de esta socia y no archivadas
-                requests = new java.util.ArrayList<>();
-                for (Request request : acceptedRequests) {
-                    if (request.getSociaId() == userId && !request.isArchived()) {
-                        requests.add(request);
+                // Filtrar solo las no archivadas y en estados relevantes
+                allRequests = new java.util.ArrayList<>();
+                for (Request request : sociaRequests) {
+                    // Excluir archivadas
+                    if (request.isArchived()) {
+                        continue;
+                    }
+                    
+                    // Solo incluir aceptadas, en progreso o completadas
+                    String status = request.getStatus();
+                    if ("aceptada".equals(status) || "en_progreso".equals(status) || "completada".equals(status)) {
+                        // Si está completada y calificada, archivarla automáticamente
+                        if ("completada".equals(status) && request.getRating() > 0) {
+                            request.setArchived(true);
+                            databaseHelper.updateRequest(request);
+                            Log.d(TAG, "Request " + request.getId() + " archivada automáticamente (completada y calificada)");
+                            continue; // No mostrar en la lista
+                        }
+                        allRequests.add(request);
                     }
                 }
-                for (Request request : completedRequests) {
-                    if (request.getSociaId() == userId && !request.isArchived()) {
-                        requests.add(request);
-                    }
-                }
                 
-                Log.d(TAG, "Found " + requests.size() + " non-archived accepted/completed requests for this socia");
+                Log.d(TAG, "Found " + allRequests.size() + " non-archived accepted/in-progress/completed requests for this socia");
             } else {
                 // Para usuarios sin rol específico, mostrar solicitudes pendientes (excluyendo archivadas)
                 List<Request> allPendingRequests = databaseHelper.getRequestsByStatus("pendiente");
-                requests = new java.util.ArrayList<>();
+                allRequests = new java.util.ArrayList<>();
                 for (Request request : allPendingRequests) {
                     if (!request.isArchived()) {
-                        requests.add(request);
+                        allRequests.add(request);
                     }
                 }
-                Log.d(TAG, "Found " + requests.size() + " non-archived pending requests (default)");
+                Log.d(TAG, "Found " + allRequests.size() + " non-archived pending requests (default)");
             }
             
-            if (requests.isEmpty()) {
-                showEmptyState();
-            } else {
-                hideEmptyState();
-                requestAdapter = new RequestAdapter(requests, new RequestAdapter.OnRequestClickListener() {
-                    @Override
-                    public void onRequestClick(Request request) {
-                        Intent intent = new Intent(getContext(), RequestDetailsActivity.class);
-                        intent.putExtra("request_id", request.getId());
-                        startActivity(intent);
-                    }
-                });
-                recyclerView.setAdapter(requestAdapter);
-                Log.d(TAG, "Adapter set with " + requests.size() + " requests");
-            }
+            filteredRequests = new java.util.ArrayList<>(allRequests);
+            updateRequestAdapter();
             
         } catch (Exception e) {
             Log.e(TAG, "Error loading requests: " + e.getMessage(), e);
             Toast.makeText(getContext(), "Error al cargar solicitudes: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    private void updateRequestAdapter() {
+        if (filteredRequests.isEmpty()) {
+            showEmptyState();
+        } else {
+            hideEmptyState();
+            requestAdapter = new RequestAdapter(filteredRequests, new RequestAdapter.OnRequestClickListener() {
+                @Override
+                public void onRequestClick(Request request) {
+                    Intent intent = new Intent(getContext(), RequestDetailsActivity.class);
+                    intent.putExtra("request_id", request.getId());
+                    startActivity(intent);
+                }
+            });
+            recyclerView.setAdapter(requestAdapter);
+            Log.d(TAG, "Adapter set with " + filteredRequests.size() + " requests");
         }
     }
     
@@ -167,6 +188,44 @@ public class RequestsFragment extends Fragment {
         }
     }
     
+    private void setupSearch() {
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterRequests(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+    
+    private void filterRequests(String query) {
+        filteredRequests.clear();
+        
+        if (query.isEmpty()) {
+            filteredRequests.addAll(allRequests);
+        } else {
+            String searchQuery = query.toLowerCase().trim();
+            for (Request request : allRequests) {
+                // Buscar por ID de solicitud, dirección, notas, estado, etc.
+                if (String.valueOf(request.getId()).contains(searchQuery) ||
+                    request.getAddress().toLowerCase().contains(searchQuery) ||
+                    (request.getNotes() != null && request.getNotes().toLowerCase().contains(searchQuery)) ||
+                    request.getStatus().toLowerCase().contains(searchQuery) ||
+                    request.getScheduledDate().toLowerCase().contains(searchQuery) ||
+                    request.getScheduledTime().toLowerCase().contains(searchQuery)) {
+                    filteredRequests.add(request);
+                }
+            }
+        }
+        
+        updateRequestAdapter();
+    }
+    
     @Override
     public void onResume() {
         super.onResume();
@@ -176,3 +235,4 @@ public class RequestsFragment extends Fragment {
         }
     }
 }
+

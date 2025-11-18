@@ -2,6 +2,8 @@ package com.example.loopv7.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +27,7 @@ import com.example.loopv7.models.Service;
 import com.example.loopv7.models.Category;
 import com.example.loopv7.utils.SessionManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
@@ -37,8 +40,10 @@ public class ServicesFragment extends Fragment {
     private FloatingActionButton fabCreateRequest;
     private Spinner spinnerCategories;
     private TextView tvCategoryTitle;
+    private TextInputEditText etSearch;
     private List<Category> categories;
     private List<Service> allServices;
+    private List<Service> filteredServices;
 
     @Nullable
     @Override
@@ -50,6 +55,7 @@ public class ServicesFragment extends Fragment {
         
         recyclerView = view.findViewById(R.id.recyclerViewServices);
         fabCreateRequest = view.findViewById(R.id.fabCreateRequest);
+        etSearch = view.findViewById(R.id.etSearch);
         
         // Por ahora, no usar spinner de categorías hasta que se agregue al layout
         spinnerCategories = null;
@@ -71,13 +77,19 @@ public class ServicesFragment extends Fragment {
         loadCategories();
         loadServices();
         setupCategorySpinner();
+        setupSearch();
         
         return view;
     }
     
     private void loadServices() {
         allServices = databaseHelper.getAllServices();
-        serviceAdapter = new ServiceAdapter(allServices, new ServiceAdapter.OnServiceClickListener() {
+        filteredServices = new java.util.ArrayList<>(allServices);
+        updateServiceAdapter();
+    }
+    
+    private void updateServiceAdapter() {
+        serviceAdapter = new ServiceAdapter(filteredServices, new ServiceAdapter.OnServiceClickListener() {
             @Override
             public void onServiceClick(Service service) {
                 if (sessionManager.isCliente()) {
@@ -184,5 +196,39 @@ public class ServicesFragment extends Fragment {
             }
         });
         recyclerView.setAdapter(serviceAdapter);
+    }
+    
+    private void setupSearch() {
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterServices(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+    
+    private void filterServices(String query) {
+        filteredServices.clear();
+        
+        if (query.isEmpty()) {
+            filteredServices.addAll(allServices);
+        } else {
+            String searchQuery = query.toLowerCase().trim();
+            for (Service service : allServices) {
+                if (service.getName().toLowerCase().contains(searchQuery) ||
+                    service.getDescription().toLowerCase().contains(searchQuery) ||
+                    service.getCategory().toLowerCase().contains(searchQuery)) {
+                    filteredServices.add(service);
+                }
+            }
+        }
+        
+        updateServiceAdapter();
     }
 }

@@ -23,7 +23,7 @@ import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "loop_database.db";
-    private static final int DATABASE_VERSION = 8;
+    private static final int DATABASE_VERSION = 9;
 
     // Tabla Users
     private static final String TABLE_USERS = "users";
@@ -138,6 +138,91 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+    
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        // Asegurar que todas las columnas existan cuando se abre la base de datos
+        ensureColumnsExist(db);
+    }
+    
+    /**
+     * Asegura que todas las columnas necesarias existan en la tabla users
+     * Este método se ejecuta cada vez que se abre la base de datos
+     */
+    private void ensureColumnsExist(SQLiteDatabase db) {
+        try {
+            // Verificar y agregar columna location si no existe
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LOCATION + " TEXT");
+                    Log.d("DatabaseHelper", "Columna location agregada en onOpen");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna location en onOpen: " + e.getMessage());
+                }
+            }
+            
+            // Verificar y agregar otras columnas si no existen
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_DESCRIPTION + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna description: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_PROFILE_IMAGE + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna profile_image: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_RATING + " REAL DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna rating: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_TOTAL_RATINGS + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna total_ratings: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna completed_services: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LAST_SERVICE_DATE + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna last_service_date: " + e.getMessage());
+                }
+            }
+            
+            if (!columnExists(db, TABLE_REQUESTS, COLUMN_REQUEST_IS_ARCHIVED)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_REQUESTS + " ADD COLUMN " + COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error agregando columna is_archived: " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error en ensureColumnsExist: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -283,24 +368,76 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 2) {
-            // Agregar nuevas columnas a la tabla users
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_DESCRIPTION + " TEXT");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_PROFILE_IMAGE + " TEXT");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_RATING + " REAL DEFAULT 0");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_TOTAL_RATINGS + " INTEGER DEFAULT 0");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LOCATION + " TEXT");
-        }
-        
-        if (oldVersion < 7) {
-            // Agregar nuevas columnas para estadísticas de socias
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LAST_SERVICE_DATE + " TEXT");
-        }
-        
-        if (oldVersion < 8) {
-            // Agregar campo de archivado a la tabla requests
-            db.execSQL("ALTER TABLE " + TABLE_REQUESTS + " ADD COLUMN " + COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0");
+        try {
+            // Asegurar que todas las columnas existan, agregándolas si no existen
+            // Esto maneja el caso donde la base de datos puede no tener todas las columnas
+            
+            if (oldVersion < 2 || !columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_DESCRIPTION + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna description ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 2 || !columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_PROFILE_IMAGE + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna profile_image ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 2 || !columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_RATING + " REAL DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna rating ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 2 || !columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_TOTAL_RATINGS + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna total_ratings ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 2 || !columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LOCATION + " TEXT");
+                    Log.d("DatabaseHelper", "Columna location agregada exitosamente");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna location ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 7 || !columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_COMPLETED_SERVICES + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna completed_services ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 7 || !columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_USER_LAST_SERVICE_DATE + " TEXT");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna last_service_date ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+            
+            if (oldVersion < 8 || !columnExists(db, TABLE_REQUESTS, COLUMN_REQUEST_IS_ARCHIVED)) {
+                try {
+                    db.execSQL("ALTER TABLE " + TABLE_REQUESTS + " ADD COLUMN " + COLUMN_REQUEST_IS_ARCHIVED + " INTEGER DEFAULT 0");
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Columna is_archived ya existe o error agregándola: " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error durante onUpgrade: " + e.getMessage(), e);
         }
         
         if (oldVersion < 6) {
@@ -598,22 +735,67 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         
-        values.put(COLUMN_USER_EMAIL, user.getEmail());
-        values.put(COLUMN_USER_PASSWORD, user.getPassword());
-        values.put(COLUMN_USER_NAME, user.getName());
-        values.put(COLUMN_USER_PHONE, user.getPhone());
-        values.put(COLUMN_USER_ROLE, user.getRole());
-        values.put(COLUMN_USER_STATUS, user.getStatus());
-        values.put(COLUMN_USER_DESCRIPTION, user.getDescription() != null ? user.getDescription() : "");
-        values.put(COLUMN_USER_PROFILE_IMAGE, user.getProfileImage() != null ? user.getProfileImage() : "");
-        values.put(COLUMN_USER_RATING, user.getRating());
-        values.put(COLUMN_USER_TOTAL_RATINGS, user.getTotalRatings());
-        values.put(COLUMN_USER_LOCATION, user.getLocation() != null ? user.getLocation() : "");
-        values.put(COLUMN_USER_CREATED_AT, getCurrentDateTime());
-        
-        long result = db.insert(TABLE_USERS, null, values);
-        db.close();
-        return result;
+        try {
+            values.put(COLUMN_USER_EMAIL, user.getEmail());
+            values.put(COLUMN_USER_PASSWORD, user.getPassword());
+            values.put(COLUMN_USER_NAME, user.getName());
+            values.put(COLUMN_USER_PHONE, user.getPhone());
+            values.put(COLUMN_USER_ROLE, user.getRole());
+            
+            // Asegurarse de que el status siempre sea "activo" si es null o vacío
+            String status = user.getStatus();
+            if (status == null || status.trim().isEmpty()) {
+                status = "activo";
+                user.setStatus(status);
+            }
+            values.put(COLUMN_USER_STATUS, status.trim().toLowerCase());
+            
+            // Verificar y agregar columnas opcionales solo si existen
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                values.put(COLUMN_USER_DESCRIPTION, user.getDescription() != null ? user.getDescription() : "");
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                values.put(COLUMN_USER_PROFILE_IMAGE, user.getProfileImage() != null ? user.getProfileImage() : "");
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                values.put(COLUMN_USER_RATING, user.getRating());
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                values.put(COLUMN_USER_TOTAL_RATINGS, user.getTotalRatings());
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                values.put(COLUMN_USER_COMPLETED_SERVICES, user.getCompletedServices());
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                values.put(COLUMN_USER_LAST_SERVICE_DATE, user.getLastServiceDate() != null ? user.getLastServiceDate() : "");
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                values.put(COLUMN_USER_LOCATION, user.getLocation() != null ? user.getLocation() : "");
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_CREATED_AT)) {
+                values.put(COLUMN_USER_CREATED_AT, getCurrentDateTime());
+            }
+            
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_UPDATED_AT)) {
+                values.put(COLUMN_USER_UPDATED_AT, getCurrentDateTime());
+            }
+            
+            long result = db.insert(TABLE_USERS, null, values);
+            return result;
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error insertando usuario: " + e.getMessage(), e);
+            return -1;
+        } finally {
+            db.close();
+        }
     }
 
     public User getUserByEmail(String email) {
@@ -630,7 +812,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             user.setName(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_NAME)));
             user.setPhone(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PHONE)));
             user.setRole(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_ROLE)));
-            user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_STATUS)));
+            
+            // Obtener status y asegurarse de que no sea null (por defecto "activo")
+            int statusIndex = cursor.getColumnIndex(COLUMN_USER_STATUS);
+            String status = statusIndex >= 0 && !cursor.isNull(statusIndex) ? 
+                           cursor.getString(statusIndex) : null;
+            
+            // Si el status es null, vacío o no es "activo", establecer como "activo" y actualizar en BD
+            if (status == null || status.trim().isEmpty() || !"activo".equalsIgnoreCase(status.trim())) {
+                status = "activo";
+                user.setStatus(status);
+                // Actualizar en la base de datos
+                ContentValues updateValues = new ContentValues();
+                updateValues.put(COLUMN_USER_STATUS, "activo");
+                db.update(TABLE_USERS, updateValues, COLUMN_USER_ID + "=?", 
+                         new String[]{String.valueOf(user.getId())});
+                Log.d("DatabaseHelper", "Usuario " + email + " tenía status inválido, actualizado a 'activo'");
+            } else {
+                user.setStatus(status.trim().toLowerCase());
+            }
             // Manejar columnas que podrían no existir en versiones anteriores
             if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
                 int descriptionIndex = cursor.getColumnIndex(COLUMN_USER_DESCRIPTION);
@@ -676,6 +876,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
+     * Verifica si un email ya existe en la base de datos
+     * @param email Email a verificar
+     * @return true si el email existe, false si no
+     */
+    public boolean emailExists(String email) {
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_USER_ID}, 
+                    COLUMN_USER_EMAIL + "=?", new String[]{email}, null, null, null);
+            
+            boolean exists = cursor.getCount() > 0;
+            cursor.close();
+            db.close();
+            return exists;
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error verificando si email existe: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Actualiza las estadísticas de un usuario basándose en las solicitudes completadas y calificaciones
      */
     public void updateUserStatsFromDatabase(int userId) {
@@ -693,7 +915,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Abrir base de datos una sola vez
             db = this.getReadableDatabase();
             
-            // Contar servicios completados por esta socia
+            // Contar TODOS los servicios completados por esta socia (incluyendo archivados)
+            // Las estadísticas deben mostrar el historial completo
             Cursor completedCursor = db.rawQuery(
                 "SELECT COUNT(*) FROM " + TABLE_REQUESTS + 
                 " WHERE " + COLUMN_REQUEST_SOCIA_ID + " = ? AND " + COLUMN_REQUEST_STATUS + " = 'completada'", 
@@ -792,7 +1015,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             user.setName(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_NAME)));
             user.setPhone(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PHONE)));
             user.setRole(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_ROLE)));
-            user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_STATUS)));
+            
+            // Obtener status y asegurarse de que no sea null (por defecto "activo")
+            int statusIndex = cursor.getColumnIndex(COLUMN_USER_STATUS);
+            String status = statusIndex >= 0 && !cursor.isNull(statusIndex) ? 
+                           cursor.getString(statusIndex) : null;
+            
+            // Si el status es null, vacío o no es "activo", establecer como "activo" y actualizar en BD
+            if (status == null || status.trim().isEmpty() || !"activo".equalsIgnoreCase(status.trim())) {
+                status = "activo";
+                user.setStatus(status);
+                // Actualizar en la base de datos
+                ContentValues updateValues = new ContentValues();
+                updateValues.put(COLUMN_USER_STATUS, "activo");
+                db.update(TABLE_USERS, updateValues, COLUMN_USER_ID + "=?", 
+                         new String[]{String.valueOf(user.getId())});
+                Log.d("DatabaseHelper", "Usuario ID " + user.getId() + " tenía status inválido, actualizado a 'activo'");
+            } else {
+                user.setStatus(status.trim().toLowerCase());
+            }
             // Manejar columnas que podrían no existir en versiones anteriores
             if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
                 int descriptionIndex = cursor.getColumnIndex(COLUMN_USER_DESCRIPTION);
@@ -935,6 +1176,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Métodos para Services
+    /**
+     * Obtiene todos los servicios activos
+     * @return Lista de servicios activos
+     */
     public List<Service> getAllServices() {
         List<Service> services = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -957,6 +1202,38 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         db.close();
+        return services;
+    }
+    
+    /**
+     * Obtiene todos los servicios (sin filtrar por estado) - para backup
+     * @return Lista de todos los servicios
+     */
+    public List<Service> getAllServicesForBackup() {
+        List<Service> services = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(TABLE_SERVICES, null, null, null, null, null, null);
+            
+            if (cursor.moveToFirst()) {
+                do {
+                    Service service = new Service();
+                    service.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_ID)));
+                    service.setName(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_NAME)));
+                    service.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_DESCRIPTION)));
+                    service.setPrice(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_PRICE)));
+                    service.setDuration(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_DURATION)));
+                    service.setCategory(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_CATEGORY)));
+                    service.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_STATUS)));
+                    service.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SERVICE_CREATED_AT)));
+                    services.add(service);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            db.close();
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error obteniendo todos los servicios: " + e.getMessage(), e);
+        }
         return services;
     }
 
@@ -1558,6 +1835,462 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             Log.i("DatabaseHelper", "Todos los datos han sido eliminados");
         } catch (Exception e) {
             Log.e("DatabaseHelper", "Error limpiando datos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Reinicia la base de datos: limpia todos los datos y restaura los datos iniciales
+     * Esto es útil para pruebas o cuando se necesita empezar desde cero
+     * @return true si el reinicio fue exitoso, false si hubo error
+     */
+    public boolean resetDatabase() {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            
+            Log.i("DatabaseHelper", "Iniciando reinicio de base de datos...");
+            
+            // Eliminar todos los datos (en orden correcto para respetar foreign keys)
+            db.delete(TABLE_NOTIFICATIONS, null, null);
+            db.delete(TABLE_RATINGS, null, null);
+            db.delete(TABLE_PAYMENTS, null, null);
+            db.delete(TABLE_REQUESTS, null, null);
+            db.delete(TABLE_SERVICES, null, null);
+            db.delete(TABLE_CATEGORIES, null, null);
+            db.delete(TABLE_USERS, null, null);
+            
+            Log.d("DatabaseHelper", "Datos eliminados, insertando datos iniciales...");
+            
+            // Reinsertar datos iniciales básicos (usuarios y servicios)
+            insertInitialData(db);
+            
+            // Reinsertar categorías (sin dependencias de IDs)
+            insertCategoriesData(db);
+            
+            db.close();
+            
+            Log.i("DatabaseHelper", "Base de datos reiniciada exitosamente");
+            return true;
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error reiniciando base de datos: " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Inserta solo las categorías (sin solicitudes, pagos, calificaciones que dependen de IDs)
+     */
+    private void insertCategoriesData(SQLiteDatabase db) {
+        try {
+            String currentTime = getCurrentDateTime();
+
+            // Insertar categorías iniciales
+            String[] categories = {
+                    // Categorías principales
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Limpieza', 'Servicios de limpieza del hogar', NULL, 'cleaning', '#4CAF50', 1, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Lavandería', 'Servicios de lavado y planchado', NULL, 'laundry', '#2196F3', 2, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Organización', 'Servicios de organización y orden', NULL, 'organization', '#FF9800', 3, 'activo', '" + currentTime + "')",
+
+                    // Subcategorías de Limpieza (parent_id = 1)
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Limpieza General', 'Limpieza básica del hogar', 1, 'general_cleaning', '#4CAF50', 1, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Limpieza Profunda', 'Limpieza exhaustiva y detallada', 1, 'deep_cleaning', '#4CAF50', 2, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Limpieza de Cocina', 'Limpieza especializada de cocina', 1, 'kitchen_cleaning', '#4CAF50', 3, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Limpieza de Baños', 'Limpieza de baños y sanitarios', 1, 'bathroom_cleaning', '#4CAF50', 4, 'activo', '" + currentTime + "')",
+
+                    // Subcategorías de Lavandería (parent_id = 2)
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Planchado', 'Planchado y doblado de ropa', 2, 'ironing', '#2196F3', 1, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Lavado', 'Lavado de ropa y textiles', 2, 'washing', '#2196F3', 2, 'activo', '" + currentTime + "')",
+
+                    // Subcategorías de Organización (parent_id = 3)
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Organización de Closets', 'Organización de armarios y closets', 3, 'closet_organization', '#FF9800', 1, 'activo', '" + currentTime + "')",
+                    "INSERT INTO " + TABLE_CATEGORIES + " (name, description, parent_id, icon, color, sort_order, status, created_at) VALUES " +
+                    "('Organización de Oficina', 'Organización de espacios de trabajo', 3, 'office_organization', '#FF9800', 2, 'activo', '" + currentTime + "')"
+            };
+
+            for (String category : categories) {
+                try {
+                    db.execSQL(category);
+                } catch (Exception e) {
+                    Log.d("DatabaseHelper", "Error insertando categoría (puede que ya exista): " + e.getMessage());
+                }
+            }
+            
+            Log.d("DatabaseHelper", "Categorías insertadas exitosamente");
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error insertando categorías: " + e.getMessage(), e);
+        }
+    }
+
+    // ========== MÉTODOS PARA BACKUP/RESTORE ==========
+    
+    /**
+     * Obtiene todos los usuarios (sin filtrar por estado)
+     * @return Lista de todos los usuarios
+     */
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(TABLE_USERS, null, null, null, null, null, null);
+            
+            if (cursor.moveToFirst()) {
+                do {
+                    User user = new User();
+                    user.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_USER_ID)));
+                    user.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_EMAIL)));
+                    user.setPassword(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PASSWORD)));
+                    user.setName(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_NAME)));
+                    user.setPhone(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_PHONE)));
+                    user.setRole(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_ROLE)));
+                    user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_STATUS)));
+                    
+                    // Campos opcionales
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                        int descriptionIndex = cursor.getColumnIndex(COLUMN_USER_DESCRIPTION);
+                        user.setDescription(descriptionIndex >= 0 && !cursor.isNull(descriptionIndex) ? cursor.getString(descriptionIndex) : "");
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                        int profileImageIndex = cursor.getColumnIndex(COLUMN_USER_PROFILE_IMAGE);
+                        user.setProfileImage(profileImageIndex >= 0 && !cursor.isNull(profileImageIndex) ? cursor.getString(profileImageIndex) : "");
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                        int ratingIndex = cursor.getColumnIndex(COLUMN_USER_RATING);
+                        user.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getDouble(ratingIndex) : 0.0);
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                        int totalRatingsIndex = cursor.getColumnIndex(COLUMN_USER_TOTAL_RATINGS);
+                        user.setTotalRatings(totalRatingsIndex >= 0 && !cursor.isNull(totalRatingsIndex) ? cursor.getInt(totalRatingsIndex) : 0);
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                        int completedServicesIndex = cursor.getColumnIndex(COLUMN_USER_COMPLETED_SERVICES);
+                        user.setCompletedServices(completedServicesIndex >= 0 && !cursor.isNull(completedServicesIndex) ? cursor.getInt(completedServicesIndex) : 0);
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                        int lastServiceDateIndex = cursor.getColumnIndex(COLUMN_USER_LAST_SERVICE_DATE);
+                        user.setLastServiceDate(lastServiceDateIndex >= 0 && !cursor.isNull(lastServiceDateIndex) ? cursor.getString(lastServiceDateIndex) : "");
+                    }
+                    
+                    if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                        int locationIndex = cursor.getColumnIndex(COLUMN_USER_LOCATION);
+                        user.setLocation(locationIndex >= 0 && !cursor.isNull(locationIndex) ? cursor.getString(locationIndex) : "");
+                    }
+                    
+                    user.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_CREATED_AT)));
+                    
+                    int updatedAtIndex = cursor.getColumnIndex(COLUMN_USER_UPDATED_AT);
+                    user.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
+                    
+                    users.add(user);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            db.close();
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error obteniendo todos los usuarios: " + e.getMessage(), e);
+        }
+        return users;
+    }
+    
+    /**
+     * Obtiene todas las solicitudes (sin filtrar por estado)
+     * @return Lista de todas las solicitudes
+     */
+    public List<Request> getAllRequests() {
+        List<Request> requests = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(TABLE_REQUESTS, null, null, null, null, null, COLUMN_REQUEST_CREATED_AT + " DESC");
+            
+            if (cursor.moveToFirst()) {
+                do {
+                    Request request = new Request();
+                    request.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ID)));
+                    request.setClientId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CLIENT_ID)));
+                    
+                    int sociaIdIndex = cursor.getColumnIndex(COLUMN_REQUEST_SOCIA_ID);
+                    request.setSociaId(sociaIdIndex >= 0 && !cursor.isNull(sociaIdIndex) ? cursor.getInt(sociaIdIndex) : 0);
+                    
+                    request.setServiceId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SERVICE_ID)));
+                    request.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_STATUS)));
+                    request.setScheduledDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_DATE)));
+                    request.setScheduledTime(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_SCHEDULED_TIME)));
+                    request.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_ADDRESS)));
+                    
+                    int notesIndex = cursor.getColumnIndex(COLUMN_REQUEST_NOTES);
+                    request.setNotes(notesIndex >= 0 && !cursor.isNull(notesIndex) ? cursor.getString(notesIndex) : "");
+                    
+                    request.setTotalPrice(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_TOTAL_PRICE)));
+                    request.setPaymentStatus(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_PAYMENT_STATUS)));
+                    
+                    int ratingIndex = cursor.getColumnIndex(COLUMN_REQUEST_RATING);
+                    request.setRating(ratingIndex >= 0 && !cursor.isNull(ratingIndex) ? cursor.getInt(ratingIndex) : 0);
+                    
+                    int reviewIndex = cursor.getColumnIndex(COLUMN_REQUEST_REVIEW);
+                    request.setReview(reviewIndex >= 0 && !cursor.isNull(reviewIndex) ? cursor.getString(reviewIndex) : "");
+                    
+                    int isArchivedIndex = cursor.getColumnIndex(COLUMN_REQUEST_IS_ARCHIVED);
+                    request.setArchived(isArchivedIndex >= 0 && cursor.getInt(isArchivedIndex) == 1);
+                    
+                    request.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REQUEST_CREATED_AT)));
+                    
+                    int updatedAtIndex = cursor.getColumnIndex(COLUMN_REQUEST_UPDATED_AT);
+                    request.setUpdatedAt(updatedAtIndex >= 0 && !cursor.isNull(updatedAtIndex) ? cursor.getString(updatedAtIndex) : "");
+                    
+                    requests.add(request);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            db.close();
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error obteniendo todas las solicitudes: " + e.getMessage(), e);
+        }
+        return requests;
+    }
+    
+    /**
+     * Agrega un usuario (para restore)
+     * NOTA: Los IDs se generan automáticamente, no se pueden restaurar IDs específicos
+     * @param user Usuario a agregar
+     * @return ID del usuario insertado
+     */
+    public long addUser(User user) {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            
+            // No intentar insertar el ID - SQLite lo generará automáticamente
+            values.put(COLUMN_USER_EMAIL, user.getEmail());
+            values.put(COLUMN_USER_PASSWORD, user.getPassword());
+            values.put(COLUMN_USER_NAME, user.getName());
+            values.put(COLUMN_USER_PHONE, user.getPhone());
+            values.put(COLUMN_USER_ROLE, user.getRole());
+            values.put(COLUMN_USER_STATUS, user.getStatus());
+            
+            // Campos opcionales
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_DESCRIPTION)) {
+                values.put(COLUMN_USER_DESCRIPTION, user.getDescription() != null ? user.getDescription() : "");
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_PROFILE_IMAGE)) {
+                values.put(COLUMN_USER_PROFILE_IMAGE, user.getProfileImage() != null ? user.getProfileImage() : "");
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_RATING)) {
+                values.put(COLUMN_USER_RATING, user.getRating());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_TOTAL_RATINGS)) {
+                values.put(COLUMN_USER_TOTAL_RATINGS, user.getTotalRatings());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_COMPLETED_SERVICES)) {
+                values.put(COLUMN_USER_COMPLETED_SERVICES, user.getCompletedServices());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LAST_SERVICE_DATE)) {
+                values.put(COLUMN_USER_LAST_SERVICE_DATE, user.getLastServiceDate() != null ? user.getLastServiceDate() : "");
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_LOCATION)) {
+                values.put(COLUMN_USER_LOCATION, user.getLocation() != null ? user.getLocation() : "");
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_CREATED_AT)) {
+                values.put(COLUMN_USER_CREATED_AT, user.getCreatedAt() != null ? user.getCreatedAt() : getCurrentDateTime());
+            }
+            if (columnExists(db, TABLE_USERS, COLUMN_USER_UPDATED_AT)) {
+                values.put(COLUMN_USER_UPDATED_AT, getCurrentDateTime());
+            }
+            
+            long result = db.insert(TABLE_USERS, null, values);
+            db.close();
+            return result;
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error agregando usuario: " + e.getMessage(), e);
+            return -1;
+        }
+    }
+    
+    /**
+     * Agrega un servicio (para restore)
+     * NOTA: Los IDs se generan automáticamente, no se pueden restaurar IDs específicos
+     * @param service Servicio a agregar
+     * @return ID del servicio insertado
+     */
+    public long addService(Service service) {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            
+            // No intentar insertar el ID - SQLite lo generará automáticamente
+            values.put(COLUMN_SERVICE_NAME, service.getName());
+            values.put(COLUMN_SERVICE_DESCRIPTION, service.getDescription());
+            values.put(COLUMN_SERVICE_PRICE, service.getPrice());
+            values.put(COLUMN_SERVICE_DURATION, service.getDuration());
+            values.put(COLUMN_SERVICE_CATEGORY, service.getCategory());
+            values.put(COLUMN_SERVICE_STATUS, service.getStatus());
+            
+            if (columnExists(db, TABLE_SERVICES, COLUMN_SERVICE_CREATED_AT)) {
+                values.put(COLUMN_SERVICE_CREATED_AT, getCurrentDateTime());
+            }
+            
+            long result = db.insert(TABLE_SERVICES, null, values);
+            db.close();
+            return result;
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error agregando servicio: " + e.getMessage(), e);
+            return -1;
+        }
+    }
+    
+    /**
+     * Agrega una solicitud (para restore)
+     * NOTA: Los IDs se generan automáticamente, no se pueden restaurar IDs específicos
+     * Las relaciones (client_id, socia_id, service_id) se restauran correctamente
+     * @param request Solicitud a agregar
+     * @return ID de la solicitud insertada
+     */
+    public long addRequest(Request request) {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            
+            // No intentar insertar el ID - SQLite lo generará automáticamente
+            // Pero sí restaurar las relaciones (estas deben referenciar IDs válidos)
+            values.put(COLUMN_REQUEST_CLIENT_ID, request.getClientId());
+            
+            if (request.getSociaId() > 0) {
+                values.put(COLUMN_REQUEST_SOCIA_ID, request.getSociaId());
+            }
+            
+            values.put(COLUMN_REQUEST_SERVICE_ID, request.getServiceId());
+            values.put(COLUMN_REQUEST_STATUS, request.getStatus());
+            values.put(COLUMN_REQUEST_SCHEDULED_DATE, request.getScheduledDate());
+            values.put(COLUMN_REQUEST_SCHEDULED_TIME, request.getScheduledTime());
+            values.put(COLUMN_REQUEST_ADDRESS, request.getAddress());
+            values.put(COLUMN_REQUEST_NOTES, request.getNotes() != null ? request.getNotes() : "");
+            values.put(COLUMN_REQUEST_TOTAL_PRICE, request.getTotalPrice());
+            values.put(COLUMN_REQUEST_PAYMENT_STATUS, request.getPaymentStatus());
+            values.put(COLUMN_REQUEST_RATING, request.getRating());
+            values.put(COLUMN_REQUEST_REVIEW, request.getReview() != null ? request.getReview() : "");
+            
+            if (columnExists(db, TABLE_REQUESTS, COLUMN_REQUEST_IS_ARCHIVED)) {
+                values.put(COLUMN_REQUEST_IS_ARCHIVED, request.isArchived() ? 1 : 0);
+            }
+            
+            if (columnExists(db, TABLE_REQUESTS, COLUMN_REQUEST_CREATED_AT)) {
+                values.put(COLUMN_REQUEST_CREATED_AT, request.getCreatedAt() != null ? request.getCreatedAt() : getCurrentDateTime());
+            }
+            
+            if (columnExists(db, TABLE_REQUESTS, COLUMN_REQUEST_UPDATED_AT)) {
+                values.put(COLUMN_REQUEST_UPDATED_AT, request.getUpdatedAt() != null ? request.getUpdatedAt() : getCurrentDateTime());
+            }
+            
+            long result = db.insert(TABLE_REQUESTS, null, values);
+            db.close();
+            return result;
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error agregando solicitud: " + e.getMessage(), e);
+            return -1;
+        }
+    }
+
+    /**
+     * Migra usuarios desde la base de datos antigua (loop_database_simple.db) a la nueva (loop_database.db)
+     * Este método debe ser llamado una sola vez después de cambiar a DatabaseHelper
+     * NOTA: Este método se mantiene por compatibilidad, pero SimpleDatabaseHelper ya no se usa
+     */
+    public void migrateUsersFromSimpleDatabase(Context context) {
+        try {
+            Log.d("DatabaseHelper", "Iniciando migración de usuarios desde base de datos antigua");
+            
+            // Abrir la base de datos simple (solo lectura)
+            SQLiteDatabase simpleDb = context.openOrCreateDatabase("loop_database_simple.db", Context.MODE_PRIVATE, null);
+            
+            // Leer todos los usuarios de la base de datos simple
+            Cursor cursor = simpleDb.query("users", null, null, null, null, null, null);
+            
+            int migratedCount = 0;
+            int skippedCount = 0;
+            
+            if (cursor.moveToFirst()) {
+                do {
+                    try {
+                        // Leer datos del usuario
+                        String email = cursor.getString(cursor.getColumnIndexOrThrow("email"));
+                        
+                        // Verificar si el usuario ya existe en la nueva base de datos
+                        if (emailExists(email)) {
+                            Log.d("DatabaseHelper", "Usuario " + email + " ya existe, saltando...");
+                            skippedCount++;
+                            continue;
+                        }
+                        
+                        // Crear objeto User
+                        User user = new User();
+                        user.setEmail(email);
+                        user.setPassword(cursor.getString(cursor.getColumnIndexOrThrow("password")));
+                        user.setName(cursor.getString(cursor.getColumnIndexOrThrow("name")));
+                        user.setPhone(cursor.getString(cursor.getColumnIndexOrThrow("phone")));
+                        user.setRole(cursor.getString(cursor.getColumnIndexOrThrow("role")));
+                        user.setStatus(cursor.getString(cursor.getColumnIndexOrThrow("status")));
+                        
+                        // Campos opcionales
+                        int descriptionIndex = cursor.getColumnIndex("description");
+                        if (descriptionIndex >= 0 && !cursor.isNull(descriptionIndex)) {
+                            user.setDescription(cursor.getString(descriptionIndex));
+                        }
+                        
+                        int profileImageIndex = cursor.getColumnIndex("profile_image");
+                        if (profileImageIndex >= 0 && !cursor.isNull(profileImageIndex)) {
+                            user.setProfileImage(cursor.getString(profileImageIndex));
+                        }
+                        
+                        int ratingIndex = cursor.getColumnIndex("rating");
+                        if (ratingIndex >= 0 && !cursor.isNull(ratingIndex)) {
+                            user.setRating(cursor.getDouble(ratingIndex));
+                        }
+                        
+                        int totalRatingsIndex = cursor.getColumnIndex("total_ratings");
+                        if (totalRatingsIndex >= 0 && !cursor.isNull(totalRatingsIndex)) {
+                            user.setTotalRatings(cursor.getInt(totalRatingsIndex));
+                        }
+                        
+                        int locationIndex = cursor.getColumnIndex("location");
+                        if (locationIndex >= 0 && !cursor.isNull(locationIndex)) {
+                            user.setLocation(cursor.getString(locationIndex));
+                        }
+                        
+                        // Insertar en la nueva base de datos
+                        long result = insertUser(user);
+                        if (result != -1) {
+                            migratedCount++;
+                            Log.d("DatabaseHelper", "Usuario " + email + " migrado exitosamente");
+                        } else {
+                            Log.e("DatabaseHelper", "Error migrando usuario " + email);
+                        }
+                        
+                    } catch (Exception e) {
+                        Log.e("DatabaseHelper", "Error procesando usuario durante migración: " + e.getMessage());
+                    }
+                } while (cursor.moveToNext());
+            }
+            
+            cursor.close();
+            simpleDb.close();
+            
+            Log.i("DatabaseHelper", "Migración completada: " + migratedCount + " usuarios migrados, " + skippedCount + " saltados");
+            
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error durante migración de usuarios: " + e.getMessage(), e);
         }
     }
 }

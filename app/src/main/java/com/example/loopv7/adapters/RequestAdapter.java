@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.Request;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.User;
@@ -50,7 +50,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.RequestV
 
     class RequestViewHolder extends RecyclerView.ViewHolder {
         private TextView tvRequestId, tvServiceId, tvDate, tvTime, tvAddress, tvStatus, tvPrice;
-        private SimpleDatabaseHelper databaseHelper;
+        private DatabaseHelper databaseHelper;
 
         public RequestViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -62,7 +62,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.RequestV
             tvStatus = itemView.findViewById(R.id.tvRequestStatus);
             tvPrice = itemView.findViewById(R.id.tvRequestPrice);
             
-            databaseHelper = new SimpleDatabaseHelper(itemView.getContext());
+            databaseHelper = new DatabaseHelper(itemView.getContext());
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override

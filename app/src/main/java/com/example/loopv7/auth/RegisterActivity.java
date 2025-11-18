@@ -15,7 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.User;
 import com.example.loopv7.utils.ValidationHelper;
 import com.example.loopv7.utils.ErrorHandler;
@@ -26,7 +26,7 @@ public class RegisterActivity extends AppCompatActivity {
     private Spinner spinnerRole;
     private Button btnRegister;
     private TextView tvLogin;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private ValidationHelper validationHelper;
     private ErrorHandler errorHandler;
     private String selectedRole = "cliente";
@@ -37,7 +37,7 @@ public class RegisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         // Inicializar componentes
-        databaseHelper = new SimpleDatabaseHelper(this);
+        databaseHelper = new DatabaseHelper(this);
         validationHelper = new ValidationHelper(this);
         errorHandler = ErrorHandler.getInstance(this);
 

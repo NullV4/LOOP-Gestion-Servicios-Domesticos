@@ -4,7 +4,7 @@ import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
 
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.User;
 import com.example.loopv7.models.Service;
 import com.example.loopv7.models.Request;
@@ -45,12 +45,12 @@ public class BackupHelper {
     private static final String BACKUP_EXTENSION = ".json";
     
     private Context context;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private ErrorHandler errorHandler;
     
     public BackupHelper(Context context) {
         this.context = context;
-        this.databaseHelper = new SimpleDatabaseHelper(context);
+        this.databaseHelper = new DatabaseHelper(context);
         this.errorHandler = ErrorHandler.getInstance(context);
     }
     
@@ -76,9 +76,9 @@ public class BackupHelper {
             String fileName = BACKUP_PREFIX + timestamp + BACKUP_EXTENSION;
             File backupFile = new File(backupDir, fileName);
             
-            // Obtener todos los datos
+            // Obtener todos los datos (sin filtrar por estado para backup completo)
             List<User> users = databaseHelper.getAllUsers();
-            List<Service> services = databaseHelper.getAllServices();
+            List<Service> services = databaseHelper.getAllServicesForBackup();
             List<Request> requests = databaseHelper.getAllRequests();
             
             // Crear JSON con todos los datos

@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import com.example.loopv7.R;
 import com.example.loopv7.activities.ArchivedRequestsActivity;
 import com.example.loopv7.activities.EditProfileActivity;
+import com.example.loopv7.activities.ProfilePhotoActivity;
 import com.example.loopv7.activities.RatingsActivity;
 import com.example.loopv7.auth.LoginActivity;
 import com.example.loopv7.database.DatabaseHelper;
@@ -30,6 +31,7 @@ public class ProfileFragment extends Fragment {
     private LinearLayout layoutRating;
     private com.google.android.material.card.MaterialCardView layoutSociaStats;
     private Button btnEditProfile, btnViewRatings, btnViewArchived, btnLogout;
+    private android.widget.ImageView ivProfilePhoto;
     private SessionManager sessionManager;
     private DatabaseHelper databaseHelper;
 
@@ -71,8 +73,9 @@ public class ProfileFragment extends Fragment {
             layoutSociaStats = view.findViewById(R.id.layoutSociaStats);
             btnEditProfile = view.findViewById(R.id.btnEditProfile);
             btnViewRatings = view.findViewById(R.id.btnViewRatings);
-            btnViewArchived = view.findViewById(R.id.btnViewArchived);
-            btnLogout = view.findViewById(R.id.btnLogout);
+        btnViewArchived = view.findViewById(R.id.btnViewArchived);
+        btnLogout = view.findViewById(R.id.btnLogout);
+        ivProfilePhoto = view.findViewById(R.id.ivProfilePhoto);
             
             // Verificar que todos los elementos críticos existen
             if (tvName == null || tvEmail == null || tvPhone == null || tvRole == null) {
@@ -96,6 +99,7 @@ public class ProfileFragment extends Fragment {
     
     private void setupUserInfo() {
         loadUserData();
+        loadProfilePhoto();
     }
     
     private void loadUserData() {
@@ -241,6 +245,21 @@ public class ProfileFragment extends Fragment {
             });
         }
         
+        // Listener para la foto de perfil
+        if (ivProfilePhoto != null) {
+            ivProfilePhoto.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    try {
+                        Intent intent = new Intent(getContext(), ProfilePhotoActivity.class);
+                        startActivityForResult(intent, 1001);
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "Error al abrir editor de foto", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+        
         if (btnLogout != null) {
             btnLogout.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -271,6 +290,40 @@ public class ProfileFragment extends Fragment {
             // El perfil fue actualizado, recargar datos
             loadUserData();
             Toast.makeText(getContext(), "Perfil actualizado", Toast.LENGTH_SHORT).show();
+        } else if (requestCode == 1001 && resultCode == android.app.Activity.RESULT_OK) {
+            // La foto de perfil fue actualizada, recargar foto
+            loadProfilePhoto();
+            Toast.makeText(getContext(), "Foto de perfil actualizada", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private void loadProfilePhoto() {
+        try {
+            if (getContext() == null || sessionManager == null || ivProfilePhoto == null) {
+                return;
+            }
+            
+            User currentUser = sessionManager.getCurrentUser();
+            if (currentUser != null && currentUser.getProfileImage() != null) {
+                // Cargar imagen desde almacenamiento interno
+                java.io.File photoFile = new java.io.File(getContext().getFilesDir(), currentUser.getProfileImage());
+                if (photoFile.exists()) {
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+                    if (bitmap != null) {
+                        ivProfilePhoto.setImageBitmap(bitmap);
+                        return;
+                    }
+                }
+            }
+            
+            // Si no hay imagen o no se pudo cargar, usar ícono por defecto
+            ivProfilePhoto.setImageResource(R.drawable.ic_person);
+            
+        } catch (Exception e) {
+            Log.e("ProfileFragment", "Error loading profile photo: " + e.getMessage());
+            if (ivProfilePhoto != null) {
+                ivProfilePhoto.setImageResource(R.drawable.ic_person);
+            }
         }
     }
 }

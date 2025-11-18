@@ -7,7 +7,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,11 +46,11 @@ public class ValidationHelper {
     private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm", Locale.getDefault());
     
     private Context context;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     
     public ValidationHelper(Context context) {
         this.context = context;
-        this.databaseHelper = new SimpleDatabaseHelper(context);
+        this.databaseHelper = new DatabaseHelper(context);
     }
     
     /**

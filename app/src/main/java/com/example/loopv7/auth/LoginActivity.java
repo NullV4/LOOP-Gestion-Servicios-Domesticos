@@ -3,6 +3,7 @@ package com.example.loopv7.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -13,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.loopv7.MainActivity;
 import com.example.loopv7.R;
-import com.example.loopv7.database.SimpleDatabaseHelper;
+import com.example.loopv7.database.DatabaseHelper;
 import com.example.loopv7.models.User;
 import com.example.loopv7.utils.SessionManager;
 
@@ -22,7 +23,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword;
     private Button btnLogin;
     private TextView tvRegister;
-    private SimpleDatabaseHelper databaseHelper;
+    private DatabaseHelper databaseHelper;
     private SessionManager sessionManager;
 
     @Override
@@ -32,7 +33,7 @@ public class LoginActivity extends AppCompatActivity {
 
         try {
             // Inicializar componentes
-            databaseHelper = new SimpleDatabaseHelper(this);
+            databaseHelper = new DatabaseHelper(this);
             sessionManager = new SessionManager(this);
 
             // Verificar si ya está logueado
@@ -106,8 +107,20 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            if (!"activo".equals(user.getStatus())) {
-                Toast.makeText(this, "Usuario inactivo", Toast.LENGTH_SHORT).show();
+            // Verificar status del usuario (case-insensitive y con trim)
+            String userStatus = user.getStatus();
+            if (userStatus == null || userStatus.trim().isEmpty()) {
+                // Si el status es null o vacío, establecer como activo y actualizar en la base de datos
+                user.setStatus("activo");
+                databaseHelper.updateUser(user);
+                Log.d("LoginActivity", "Usuario " + user.getEmail() + " tenía status null/vacío, actualizado a 'activo'");
+            } else {
+                userStatus = userStatus.trim().toLowerCase();
+            }
+            
+            if (!"activo".equals(userStatus)) {
+                Toast.makeText(this, "Usuario inactivo. Contacte al administrador.", Toast.LENGTH_LONG).show();
+                Log.d("LoginActivity", "Usuario " + user.getEmail() + " intentó iniciar sesión con status: " + user.getStatus());
                 return;
             }
 

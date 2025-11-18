@@ -84,7 +84,7 @@ public class Request {
     public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 
     public String getFormattedPrice() {
-        return String.format("$%.2f", totalPrice);
+        return String.format("S/ %.2f", totalPrice);
     }
 
     public boolean isPending() { return "pendiente".equals(status); }
